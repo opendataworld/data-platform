@@ -12,10 +12,12 @@
     --muted: #8a8f98;
     --accent: #4ade80;
     --card: #14161c;
+    --card-dim: #101217;
+    --border: #222;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
-  main { max-width: 880px; margin: 0 auto; padding: 4rem 1.5rem; }
+  main { max-width: 920px; margin: 0 auto; padding: 4rem 1.5rem; }
   header { margin-bottom: 3rem; }
   .mark { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
   h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0 0 1rem; line-height: 1.1; letter-spacing: -0.02em; }
@@ -32,11 +34,47 @@
     color: var(--muted); text-decoration: none; padding: 0.9rem 1rem; font-size: 0.95rem;
   }
   .cta-secondary:hover { color: var(--fg); }
-  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 4rem; }
-  .card { background: var(--card); padding: 1.25rem; border-radius: 8px; border: 1px solid #222; }
-  .card h3 { margin: 0 0 0.25rem; font-size: 1rem; }
-  .card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-  footer { margin-top: 5rem; padding-top: 2rem; border-top: 1px solid #222; color: var(--muted); font-size: 0.85rem; }
+
+  h2 { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 3.5rem 0 1rem; font-weight: 600; }
+
+  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }
+
+  .card {
+    background: var(--card);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    position: relative;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card.live:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card.disabled {
+    background: var(--card-dim);
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .card-head { display: flex; justify-content: space-between; align-items: center; }
+  .card h3 { margin: 0; font-size: 1rem; }
+  .badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge.live { background: rgba(74, 222, 128, 0.15); color: var(--accent); border: 1px solid rgba(74, 222, 128, 0.3); }
+  .badge.soon { background: rgba(138, 143, 152, 0.1); color: var(--muted); border: 1px solid var(--border); }
+  .card p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+  .card .url { margin-top: 0.4rem; font-size: 0.78rem; color: #555; font-family: ui-monospace, "SF Mono", monospace; }
+
+  footer { margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
   footer a { color: var(--muted); }
 </style>
 </head>
@@ -52,13 +90,63 @@
     <a class="cta-secondary" href="https://github.com/opendataworld">GitHub ↗</a>
   </header>
 
+  <h2>Services</h2>
   <section class="stack">
-    <div class="card"><h3>Catalog</h3><p>OpenMetadata — discover, govern, trace lineage across every data asset.</p></div>
-    <div class="card"><h3>Ingest</h3><p>Airbyte — 350+ connectors, batch + incremental.</p></div>
-    <div class="card"><h3>Resolve</h3><p>Zingg — ML-based entity resolution, one record per real thing.</p></div>
-    <div class="card"><h3>Model</h3><p>Cube — semantic layer for metrics, shared across tools.</p></div>
-    <div class="card"><h3>Visualize</h3><p>Superset — dashboards + SQL exploration.</p></div>
-    <div class="card"><h3>Knowledge</h3><p>SurrealDB, TerminusDB, GraphDB — doc, versioned, and standards-compliant graphs.</p></div>
+
+    <a class="card live" href="https://metadata.open-data.world">
+      <div class="card-head"><h3>OpenMetadata</h3><span class="badge live">Live</span></div>
+      <p>Discover, govern, and trace lineage across every data asset.</p>
+      <div class="url">metadata.open-data.world</div>
+    </a>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>Airbyte</h3><span class="badge soon">Coming soon</span></div>
+      <p>350+ connectors for moving data from SaaS, DBs, and APIs into your warehouse.</p>
+      <div class="url">ingest.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>Zingg</h3><span class="badge soon">Coming soon</span></div>
+      <p>ML-based entity resolution — one record per real-world thing.</p>
+      <div class="url">resolve.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>Cube</h3><span class="badge soon">Coming soon</span></div>
+      <p>Semantic layer — metric definitions reused across tools and APIs.</p>
+      <div class="url">metrics.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>Superset</h3><span class="badge soon">Coming soon</span></div>
+      <p>Dashboards and SQL exploration for analysts and engineers.</p>
+      <div class="url">viz.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>Unomi</h3><span class="badge soon">Coming soon</span></div>
+      <p>Customer data platform — event capture, profiles, segments.</p>
+      <div class="url">events.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>SurrealDB</h3><span class="badge soon">Coming soon</span></div>
+      <p>Multi-model store — documents, vector search, live queries.</p>
+      <div class="url">data.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>TerminusDB</h3><span class="badge soon">Coming soon</span></div>
+      <p>Versioned knowledge graph — branch, diff, and review content models.</p>
+      <div class="url">editor.open-data.world</div>
+    </div>
+
+    <div class="card disabled" aria-disabled="true">
+      <div class="card-head"><h3>GraphDB</h3><span class="badge soon">Coming soon</span></div>
+      <p>Standards-compliant RDF store — schema.org, SPARQL, linked data.</p>
+      <div class="url">kg.open-data.world</div>
+    </div>
+
   </section>
 
   <footer>

@@ -1,15 +1,11 @@
 # opendataworld Caddyfile
-# Serves the static landing and reverse-proxies metadata.open-data.world to OpenMetadata.
-# Caddy auto-issues Let's Encrypt certs once DNS points here.
+# Wildcard DNS *.open-data.world points to this VPS.
+# Caddy auto-issues Let's Encrypt certs once DNS resolves here.
 
-open-data.world, www.open-data.world {
+site.open-data.world {
     root * /var/www/landing
     file_server
     encode zstd gzip
-
-    # Redirect www → apex
-    @www host www.open-data.world
-    redir @www https://open-data.world{uri} permanent
 }
 
 metadata.open-data.world {
