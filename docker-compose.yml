@@ -1,0 +1,103 @@
+# opendataworld data-platform — scaffold.
+# Each service is guarded by a Compose profile. Nothing starts unless you opt in.
+# See docs/phase-plan.md for the recommended install order.
+
+name: opendataworld
+
+services:
+
+  # ─── catalog ─────────────────────────────────────────────────────────────────
+  openmetadata:
+    profiles: ["catalog"]
+    image: openmetadata/server:latest
+    ports:
+      - "${OPENMETADATA_PORT}:8585"
+    environment:
+      AUTHENTICATION_PROVIDER: custom-oidc
+      AUTHENTICATION_PUBLIC_KEYS: "[${KEYCLOAK_ISSUER_URL}/protocol/openid-connect/certs]"
+      AUTHENTICATION_AUTHORITY: ${KEYCLOAK_ISSUER_URL}
+      AUTHENTICATION_CLIENT_ID: ${OPENMETADATA_OIDC_CLIENT_ID}
+      # TODO: add MySQL + Elasticsearch deps when installing this profile
+
+  # ─── ingest ──────────────────────────────────────────────────────────────────
+  airbyte:
+    profiles: ["ingest"]
+    image: airbyte/server:latest
+    ports:
+      - "${AIRBYTE_WEBAPP_PORT}:8000"
+    environment:
+      OIDC_ISSUER: ${KEYCLOAK_ISSUER_URL}
+      OIDC_CLIENT_ID: ${AIRBYTE_OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${AIRBYTE_OIDC_CLIENT_SECRET}
+    # TODO: Airbyte needs temporal, db, worker, webapp — expand on install
+
+  # ─── resolve ─────────────────────────────────────────────────────────────────
+  zingg:
+    profiles: ["resolve"]
+    image: zingg/zingg:latest
+    environment:
+      SPARK_DRIVER_MEMORY: ${ZINGG_SPARK_MEMORY}
+    # Zingg is batch: run `docker compose run --rm zingg train ...`
+
+  # ─── semantic ────────────────────────────────────────────────────────────────
+  cube:
+    profiles: ["semantic"]
+    image: cubejs/cube:latest
+    ports:
+      - "${CUBE_API_PORT}:4000"
+    environment:
+      CUBEJS_JWK_URL: ${CUBE_JWT_JWKS_URL}
+      CUBEJS_JWT_ISSUER: ${KEYCLOAK_ISSUER_URL}
+
+  # ─── viz ─────────────────────────────────────────────────────────────────────
+  superset:
+    profiles: ["viz"]
+    image: apache/superset:latest
+    ports:
+      - "${SUPERSET_PORT}:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      # TODO: mount superset_config.py with OIDC client via AUTH_OAUTH
+
+  # ─── cdp ─────────────────────────────────────────────────────────────────────
+  unomi:
+    profiles: ["cdp"]
+    image: apache/unomi:latest
+    ports:
+      - "${UNOMI_PORT}:8181"
+    # TODO: front with oauth2-proxy for Keycloak SSO; add Elasticsearch dep
+
+  # ─── store ───────────────────────────────────────────────────────────────────
+  surrealdb:
+    profiles: ["store"]
+    image: surrealdb/surrealdb:latest
+    command: start --user ${SURREALDB_USER} --pass ${SURREALDB_PASS}
+    ports:
+      - "${SURREALDB_PORT}:8000"
+    volumes:
+      - surrealdb-data:/data
+
+  # ─── kg-edit ─────────────────────────────────────────────────────────────────
+  terminusdb:
+    profiles: ["kg-edit"]
+    image: terminusdb/terminusdb-server:latest
+    environment:
+      TERMINUSDB_ADMIN_PASS: ${TERMINUSDB_ADMIN_PASS}
+    ports:
+      - "${TERMINUSDB_PORT}:6363"
+    volumes:
+      - terminusdb-storage:/app/terminusdb/storage
+
+  # ─── kg-pub ──────────────────────────────────────────────────────────────────
+  graphdb:
+    profiles: ["kg-pub"]
+    image: ontotext/graphdb:10.6.4
+    ports:
+      - "${GRAPHDB_PORT}:7200"
+    volumes:
+      - graphdb-data:/opt/graphdb/home
+
+volumes:
+  surrealdb-data:
+  terminusdb-storage:
+  graphdb-data:
