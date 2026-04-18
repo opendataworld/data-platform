@@ -8,6 +8,12 @@ site.open-data.world {
     encode zstd gzip
 }
 
+trust.open-data.world {
+    root * /var/www/trust
+    file_server
+    encode zstd gzip
+}
+
 metadata.open-data.world {
     reverse_proxy localhost:8585
     encode zstd gzip

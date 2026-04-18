@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trust — opendataworld</title>
+<meta name="description" content="Trust and transparency for opendataworld — infrastructure, security posture, data handling, open source, and AI disclosure.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://trust.open-data.world/">
+<meta name="theme-color" content="#0b0c10">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Trust — opendataworld">
+<meta property="og:description" content="Infrastructure, security, data handling, open source, AI disclosure.">
+<meta property="og:url" content="https://trust.open-data.world/">
+<meta property="og:image" content="https://site.open-data.world/og-image.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c10'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%234ade80'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0b0c10; --fg: #e6e6e6; --muted: #8a8f98;
+    --accent: #4ade80; --card: #14161c; --border: #222;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.65; }
+  main { max-width: 760px; margin: 0 auto; padding: 4rem 1.5rem; }
+  .mark { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
+  h1 { font-size: 2.25rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+  .updated { color: var(--muted); font-size: 0.9rem; margin-bottom: 2.5rem; }
+  h2 { font-size: 1.2rem; margin: 2.5rem 0 0.75rem; border-top: 1px solid var(--border); padding-top: 2rem; }
+  p, li { color: var(--fg); }
+  .muted { color: var(--muted); }
+  a { color: var(--accent); }
+  code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 4px; font-family: ui-monospace, "SF Mono", monospace; font-size: 0.9em; color: var(--accent); }
+  ul { padding-left: 1.2rem; }
+  ul li { margin-bottom: 0.35rem; }
+  .notice {
+    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem; border-radius: 6px; margin: 1.5rem 0;
+  }
+  footer { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">opendataworld / trust</div>
+  <h1>Trust &amp; transparency</h1>
+  <div class="updated">Last updated: 2026-04-17</div>
+
+  <p>What we run, how it's secured, what happens to your data, and what we've disclosed about how this page was built.</p>
+
+  <h2>Infrastructure</h2>
+  <ul>
+    <li>Services run on a single VPS at <code>vps.open-data.world</code> (OVH, EU region).</li>
+    <li>Reverse proxy + automatic TLS via <a href="https://caddyserver.com">Caddy</a> with Let's Encrypt.</li>
+    <li>All service code runs in Docker containers; images pulled from upstream registries.</li>
+    <li>Identity/SSO delegated to Keycloak at <code>auth.unboxd.cloud</code>.</li>
+  </ul>
+
+  <h2>Open source</h2>
+  <p>The full deployment stack — compose files, landing page, this trust page — is public:</p>
+  <ul>
+    <li><a href="https://github.com/opendataworld/data-platform">github.com/opendataworld/data-platform</a></li>
+    <li><a href="https://github.com/opendataworld/OpenMetadata">github.com/opendataworld/OpenMetadata</a> (fork of Apache-2.0 OpenMetadata)</li>
+  </ul>
+  <p>Every component is itself open source: OpenMetadata, Airbyte, Zingg, Cube, Superset, Unomi, SurrealDB, TerminusDB, GraphDB.</p>
+
+  <h2>Security posture</h2>
+  <ul>
+    <li>TLS 1.2+ only; HSTS via Caddy defaults.</li>
+    <li>Internal service ports (OpenMetadata 8585, MySQL 3306, Elasticsearch 9200, Airflow 8080) will be firewalled to localhost once production hardening lands.</li>
+    <li>SSH access: key-authentication only (passwords accepted during the initial bring-up window, rotated after).</li>
+    <li>Systems are patched on Ubuntu's unattended-upgrades schedule.</li>
+  </ul>
+
+  <div class="notice">
+    <strong>Current state:</strong> the platform is in early bring-up. Production hardening (firewall rules, per-service SSO, backups, monitoring) is in progress. Do not yet load sensitive data.
+  </div>
+
+  <h2>Data handling</h2>
+  <ul>
+    <li>No visitor analytics or third-party tracking on this site or the landing page.</li>
+    <li>No cookies set by <code>site.open-data.world</code> or <code>trust.open-data.world</code>.</li>
+    <li>Logged-in data in OpenMetadata is stored in the VPS's MySQL + Elasticsearch volumes (persistent but not yet replicated or backed up off-box).</li>
+    <li>Contact: open an issue on <a href="https://github.com/opendataworld/data-platform">the data-platform repo</a>.</li>
+  </ul>
+
+  <h2>AI disclosure</h2>
+  <p>This site, its compose files, trust page, and initial OpenMetadata deploy were scaffolded with AI assistance (Claude Code, Anthropic) in collaboration with <a href="https://github.com/opendataworld">@opendataworld</a> / AgentNxt / <a href="https://openautonomyx.com">Autonomyx</a>. Human review and approval gated each production action (repo transfer, deploy, TLS, DNS).</p>
+  <p>AI-generated content is marked where applicable. If you spot an error — in copy, links, or claims made on this page — please <a href="https://github.com/opendataworld/data-platform/issues/new">file feedback</a>.</p>
+
+  <footer>
+    © 2026 OpenAutonomyx. All rights reserved. Built on open software.
+    <br>
+    <a href="https://site.open-data.world/">Home</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/opendataworld/data-platform">Source</a>
+  </footer>
+</main>
+</body>
+</html>
