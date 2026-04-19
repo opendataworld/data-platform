@@ -15,11 +15,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-dataplatform}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Redis
   redis:
@@ -29,11 +24,6 @@ services:
     command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Orchestrator (Agent + MCP + Chat)
   orchestrator:
@@ -48,10 +38,8 @@ services:
       - LLM_MODEL=${LLM_MODEL:-llama3}
       - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - postgres
+      - redis
     volumes:
       - ./orchestrator:/app
 
@@ -64,19 +52,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/langflow
       - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme}
       - LANGFLOW_LOAD_EXAMPLES=true
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - langflow_data:/app/langflow
-
-  # Documentation
-  docs:
-    image: nginx:alpine
-    ports:
-      - "${DOCS_PORT:-8001}:80"
-    volumes:
-      - ./docs:/usr/share/nginx/html:ro
 
 volumes:
   postgres_data:
