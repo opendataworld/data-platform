@@ -1,13 +1,11 @@
 # Data Platform Core - Minimal Start
 # Only services needed to run at startup
-# All other services deployed on-demand by agent
 
 name: opendataworld
 
 services:
 
-  # ─── Core Storage ─────────────────────────────────────────────────
-  # PostgreSQL - Core database
+  # PostgreSQL
   postgres:
     image: postgres:15-alpine
     ports:
@@ -24,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis - Cache and state
+  # Redis
   redis:
     image: redis:7-alpine
     ports:
@@ -38,8 +36,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Main API (Agent + MCP) ───────────────────────────────────────
-  # The orchestrator with LangGraph agent and MCP server
+  # Orchestrator (Agent + MCP + Chat)
   orchestrator:
     build:
       context: ./orchestrator
@@ -51,7 +48,6 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
       - LLM_MODEL=${LLM_MODEL:-llama3}
       - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
-      - LAGO_URL=${LAGO_URL:-http://lago:3000}
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +61,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # ─── LangFlow (Visual Builder) ───────────────────────────────────
+  # LangFlow
   langflow:
     image: langflowai/langflow:latest
     ports:
@@ -85,29 +81,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # ─── Billing (Lago) ──────────────────────────────────────────────
-  lago:
-    image: getlago/lago-api:latest
-    ports:
-      - "${LAGO_PORT:-3000}:3000"
-    environment:
-      - LAGO_DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/lago
-      - LAGO_REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
-      - LAGO_SECRET_KEY_BASE=${LAGO_SECRET_KEY_BASE:-changeme}
-      - LAGO_ENCRYPTION_KEY_BASE=${LAGO_ENCRYPTION_KEY_BASE:-changeme}
-      - LAGO_SMTP_HOST=${SMTP_HOST:-localhost}
-      - LAGO_SMTP_PORT=${SMTP_PORT:-587}
-      - LAGO_SMTP_USER=${SMTP_USER:-}
-      - LAGO_SMTP_PASSWORD=${SMTP_PASSWORD:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - lago_data:/app/public/uploads
-
-  # ─── Traefik (Reverse Proxy + SSL) ───────────────────────────────
+  # Traefik
   traefik:
     image: traefik:v3.0
     ports:
@@ -123,9 +97,8 @@ services:
     depends_on:
       - orchestrator
       - langflow
-      - lago
 
-  # ─── Documentation (Static Site) ─────────────────────────────────
+  # Documentation
   docs:
     image: nginx:alpine
     ports:
@@ -139,7 +112,6 @@ volumes:
   postgres_data:
   redis_data:
   langflow_data:
-  lago_data:
   traefik_certs:
 
 networks:
