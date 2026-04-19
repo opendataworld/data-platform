@@ -27,7 +27,7 @@ from autonomyx_agent import (
 )
 
 # Billing imports
-from billing import BillingAwareAgentMixin, SERVICE_PRICING, ServiceUsageTracker
+#from billing import #BillingAwareAgentMixin, SERVICE_PRICING, ServiceUsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -279,7 +279,7 @@ def create_data_management_tools() -> list[BaseTool]:
     @tool
     def get_service_pricing(service_id: str) -> dict:
         """Get pricing for a service."""
-        from billing import SERVICE_PRICING
+        #from billing import SERVICE_PRICING
         pricing = SERVICE_PRICING.get(service_id)
         if pricing:
             return {
@@ -294,27 +294,27 @@ def create_data_management_tools() -> list[BaseTool]:
     @tool
     def list_all_pricing() -> dict:
         """List all service pricing."""
-        from billing import SERVICE_PRICING
+        #from billing import SERVICE_PRICING
         return [{"service_id": sp.service_id, "service_name": sp.service_name, "unit_price_cents": sp.unit_price_cents, "unit": sp.unit, "monthly_price_cents": sp.monthly_price_cents} for sp in SERVICE_PRICING.values()]
     
     @tool
     def create_customer(customer_id: str, name: str, email: str) -> dict:
         """Create a customer in the billing system."""
-        from billing import LagoBillingClient
+        #from billing import LagoBillingClient
         client = LagoBillingClient()
         return client.create_customer(customer_id, name, email)
     
     @tool
     def track_usage(customer_id: str, service_id: str, quantity: float) -> dict:
         """Track service usage for billing."""
-        from billing import ServiceUsageTracker
+        #from billing import ServiceUsageTracker
         tracker = ServiceUsageTracker()
         return tracker.track_usage(customer_id, service_id, quantity)
     
     @tool
     def get_billing_summary(customer_id: str) -> dict:
         """Get billing summary for a customer."""
-        from billing import ServiceUsageTracker
+        #from billing import ServiceUsageTracker
         tracker = ServiceUsageTracker()
         return tracker.get_customer_usage(customer_id)
     
