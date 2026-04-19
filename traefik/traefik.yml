@@ -1,0 +1,73 @@
+# Traefik Configuration
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@open-data.world
+      storage: /etc/traefik/certs/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# Router rules
+http:
+  routers:
+    orchestrator:
+      rule: "Host(`api.open-data.world`)"
+      service: orchestrator
+      tls:
+        certResolver: letsencrypt
+    
+    langflow:
+      rule: "Host(`flow.open-data.world`)"
+      service: langflow
+      tls:
+        certResolver: letsencrypt
+    
+    lago:
+      rule: "Host(`billing.open-data.world`)")
+      service: lago
+      tls:
+        certResolver: letsencrypt
+    
+    docs:
+      rule: "Host(`docs.open-data.world`)"
+      service: docs
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    orchestrator:
+      loadBalancer:
+        servers:
+          - url: "http://orchestrator:8000"
+    
+    langflow:
+      loadBalancer:
+        servers:
+          - url: "http://langflow:7860"
+    
+    lago:
+      loadBalancer:
+        servers:
+          - url: "http://lago:3000"
+    
+    docs:
+      loadBalancer:
+        servers:
+          - url: "http://docs:80"

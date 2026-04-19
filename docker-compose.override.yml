@@ -1,0 +1,97 @@
+# Docker Compose override for URL configuration
+# Copy this to docker-compose.override.yml to apply
+
+version: '3.8'
+
+services:
+  # Main API with environment
+  orchestrator:
+    environment:
+      - MAIN_API_URL=http://localhost:8000
+      - LAGO_URL=http://lago:3000
+      - OLLAMA_URL=http://ollama:11434
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orchestrator.rule=Host(`api.localhost`)"
+      - "traefik.http.routers.orchestrator.entrypoints=web"
+      - "traefik.http.services.orchestrator.loadbalancer.server.port=8000"
+
+  # Lagoon Billing
+  lago:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lago.rule=Host(`billing.localhost`)"
+      - "traefik.http.routers.lago.entrypoints=web"
+      - "traefik.http.services.lago.loadbalancer.server.port=3000"
+
+  # LangFlow
+  langflow:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.langflow.rule=Host(`langflow.localhost`)"
+      - "traefik.http.routers.langflow.entrypoints=web"
+      - "traefik.http.services.langflow.loadbalancer.server.port=7860"
+
+  # n8n
+  n8n:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.localhost`)"
+      - "traefik.http.routers.n8n.entrypoints=web"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  # Airflow
+  airflow:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airflow.rule=Host(`airflow.localhost`)"
+      - "traefik.http.routers.airflow.entrypoints=web"
+      - "traefik.http.services.airflow.loadbalancer.server.port=8080"
+
+  # DataHub
+  datahub:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.datahub.rule=Host(`datahub.localhost`)"
+      - "traefik.http.routers.datahub.entrypoints=web"
+      - "traefik.http.services.datahub.loadbalancer.server.port=8082"
+
+  # OpenMetadata
+  openmetadata:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openmetadata.rule=Host(`metadata.localhost`)"
+      - "traefik.http.routers.openmetadata.entrypoints=web"
+      - "traefik.http.services.openmetadata.loadbalancer.server.port=8585"
+
+  # Kafka UI
+  kafka:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kafka.rule=Host(`kafka.localhost`)"
+      - "traefik.http.routers.kafka.entrypoints=web"
+      - "traefik.http.services.kafka.loadbalancer.server.port=8083"
+
+  # ClickHouse
+  clickhouse:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clickhouse.rule=Host(`clickhouse.localhost`)"
+      - "traefik.http.routers.clickhouse.entrypoints=web"
+      - "traefik.http.services.clickhouse.loadbalancer.server.port=8123"
+
+  # Trino
+  trino:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trino.rule=Host(`trino.localhost`)"
+      - "traefik.http.routers.trino.entrypoints=web"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
+
+  # Postgres (no external URL - internal only)
+  postgres:
+    # No traefik labels - internal only
+
+  # Redis (no external URL - internal only)
+  redis:
+    # No traefik labels - internal only

@@ -1,0 +1,148 @@
+# Docker Compose override for open-data.world domain
+# Copy this to docker-compose.override.yml to apply
+
+version: '3.8'
+
+services:
+  # Main API with Traefik labels
+  orchestrator:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orchestrator.rule=Host(`api.open-data.world`)"
+      - "traefik.http.routers.orchestrator.entrypoints=https"
+      - "traefik.http.routers.orchestrator.tls=true"
+      - "traefik.http.services.orchestrator.loadbalancer.server.port=8000"
+
+  # Lagoon Billing
+  lago:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lago.rule=Host(`billing.open-data.world`)"
+      - "traefik.http.routers.lago.entrypoints=https"
+      - "traefik.http.routers.lago.tls=true"
+      - "traefik.http.services.lago.loadbalancer.server.port=3000"
+
+  # LangFlow
+  langflow:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.langflow.rule=Host(`flow.open-data.world`)"
+      - "traefik.http.routers.langflow.entrypoints=https"
+      - "traefik.http.routers.langflow.tls=true"
+      - "traefik.http.services.langflow.loadbalancer.server.port=7860"
+
+  # n8n
+  n8n:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`automate.open-data.world`)"
+      - "traefik.http.routers.n8n.entrypoints=https"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  # Flowise
+  flowise:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flowise.rule=Host(`workflows.open-data.world`)"
+      - "traefik.http.routers.flowise.entrypoints=https"
+      - "traefik.http.routers.flowise.tls=true"
+      - "traefik.http.services.flowise.loadbalancer.server.port=3000"
+
+  # Airflow
+  airflow:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airflow.rule=Host(`airflow.open-data.world`)"
+      - "traefik.http.routers.airflow.entrypoints=https"
+      - "traefik.http.routers.airflow.tls=true"
+      - "traefik.http.services.airflow.loadbalancer.server.port=8080"
+
+  # Prefect
+  prefect:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prefect.rule=Host(`prefect.open-data.world`)"
+      - "traefik.http.routers.prefect.entrypoints=https"
+      - "traefik.http.routers.prefect.tls=true"
+      - "traefik.http.services.prefect.loadbalancer.server.port=4200"
+
+  # Dagster
+  dagster:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dagster.rule=Host(`dagster.open-data.world`)"
+      - "traefik.http.routers.dagster.entrypoints=https"
+      - "traefik.http.routers.dagster.tls=true"
+      - "traefik.http.services.dagster.loadbalancer.server.port=3000"
+
+  # DataHub
+  datahub:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.datahub.rule=Host(`catalog.open-data.world`)"
+      - "traefik.http.routers.datahub.entrypoints=https"
+      - "traefik.http.routers.datahub.tls=true"
+      - "traefik.http.services.datahub.loadbalancer.server.port=8082"
+
+  # OpenMetadata
+  openmetadata:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.openmetadata.rule=Host(`metadata.open-data.world`)"
+      - "traefik.http.routers.openmetadata.entrypoints=https"
+      - "traefik.http.routers.openmetadata.tls=true"
+      - "traefik.http.services.openmetadata.loadbalancer.server.port=8585"
+
+  # Marquez
+  marquez:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.marquez.rule=Host(`lineage.open-data.world`)"
+      - "traefik.http.routers.marquez.entrypoints=https"
+      - "traefik.http.routers.marquez.tls=true"
+      - "traefik.http.services.marquez.loadbalancer.server.port=3000"
+
+  # Kafka
+  kafka:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kafka.rule=Host(`stream.open-data.world`)"
+      - "traefik.http.routers.kafka.entrypoints=https"
+      - "traefik.http.routers.kafka.tls=true"
+      - "traefik.http.services.kafka.loadbalancer.server.port=8083"
+
+  # Trino
+  trino:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trino.rule=Host(`query.open-data.world`)"
+      - "traefik.http.routers.trino.entrypoints=https"
+      - "traefik.http.routers.trino.tls=true"
+      - "traefik.http.services.trino.loadbalancer.server.port=8080"
+
+  # Apache Pinot
+  apache-pinot:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pinot.rule=Host(`analytics.open-data.world`)"
+      - "traefik.http.routers.pinot.entrypoints=https"
+      - "traefik.http.routers.pinot.tls=true"
+      - "traefik.http.services.pinot.loadbalancer.server.port=9000"
+
+  # ClickHouse
+  clickhouse:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clickhouse.rule=Host(`warehouse.open-data.world`)"
+      - "traefik.http.routers.clickhouse.entrypoints=https"
+      - "traefik.http.routers.clickhouse.tls=true"
+      - "traefik.http.services.clickhouse.loadbalancer.server.port=8123"
+
+  # Postgres (internal only - no external URL)
+  postgres:
+    # No traefik labels - internal only
+
+  # Redis (internal only - no external URL)
+  redis:
+    # No traefik labels - internal only

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Platform | Enterprise Data Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-gradient {
+            background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.3);
+        }
+        .nav-link {
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #6366f1, #a855f7);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="hero-gradient min-h-screen text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold">Data Platform</span>
+            </a>
+            
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="nav-link text-slate-300 hover:text-white transition">Features</a>
+                <a href="#services" class="nav-link text-slate-300 hover:text-white transition">Services</a>
+                <a href="/docs/architecture" class="nav-link text-slate-300 hover:text-white transition">Architecture</a>
+                <a href="/docs/api" class="nav-link text-slate-300 hover:text-white transition">API</a>
+                <a href="/docs/dev" class="nav-link text-slate-300 hover:text-white transition">Dev Docs</a>
+                <a href="/docs/blog" class="nav-link text-slate-300 hover:text-white transition">Blog</a>
+                <a href="/docs/LANGFLOW" class="nav-link text-slate-300 hover:text-white transition">LangFlow</a>
+                <a href="/docs/MCP" class="nav-link text-slate-300 hover:text-white transition">MCP</a>
+                <a href="/docs/CHAT" class="nav-link text-slate-300 hover:text-white transition">Chat</a>
+                <a href="/orchestrator/skills" class="nav-link text-slate-300 hover:text-white transition">Skills</a>
+                <a href="/docs/REQUIREMENTS" class="nav-link text-slate-300 hover:text-white transition">Requirements</a>
+                <a href="/docs/coolify" class="nav-link text-slate-300 hover:text-white transition">Coolify</a>
+                <a href="/docs" class="px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition font-medium">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center max-w-4xl mx-auto">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm mb-8">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                    IBM Data Management Guide Aligned
+                </div>
+                
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                    Enterprise 
+                    <span class="gradient-text">Data Platform</span>
+                </h1>
+                
+                <p class="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+                    Complete data management lifecycle with AI-powered orchestration. 
+                    Crawl, embed, process, and govern your data with 60+ integrated services.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="/docs" class="px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition font-semibold text-lg">
+                        Start Building →
+                    </a>
+                    <a href="/docs/architecture" class="px-8 py-4 rounded-xl border border-white/20 hover:bg-white/10 transition font-semibold text-lg">
+                        View Architecture
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-20">
+                <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="text-4xl font-bold gradient-text">60+</div>
+                    <div class="text-slate-400 mt-2">Services</div>
+                </div>
+                <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="text-4xl font-bold gradient-text">12</div>
+                    <div class="text-slate-400 mt-2">Data Categories</div>
+                </div>
+                <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="text-4xl font-bold gradient-text">IBM</div>
+                    <div class="text-slate-400 mt-2">Guide Aligned</div>
+                </div>
+                <div class="text-center p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="text-4xl font-bold gradient-text">AutonomyX</div>
+                    <div class="text-slate-400 mt-2">Certified</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">Comprehensive Data Management</h2>
+                <p class="text-xl text-slate-400 max-w-2xl mx-auto">
+                    Aligned with IBM Data Management Guide - from data quality to governance
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Data Quality -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Quality</h3>
+                    <p class="text-slate-400">Great Expectations, Soda Core, YData Profiling for validation and quality monitoring.</p>
+                </div>
+
+                <!-- Data Governance -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Governance</h3>
+                    <p class="text-slate-400">DataHub, Atlas, Collibra, OpenMetadata for cataloging and policy management.</p>
+                </div>
+
+                <!-- Data Engineering -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Engineering</h3>
+                    <p class="text-slate-400">Airflow, Dagster, Prefect, Temporal for workflow orchestration.</p>
+                </div>
+
+                <!-- Data Integration -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Integration</h3>
+                    <p class="text-slate-400">Trino, DuckDB, Apache Pinot for ETL and analytics.</p>
+                </div>
+
+                <!-- Data Lineage -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Lineage</h3>
+                    <p class="text-slate-400">Marquez for tracking data provenance and transformations.</p>
+                </div>
+
+                <!-- Data Strategy -->
+                <div class="card-hover p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Data Strategy</h3>
+                    <p class="text-slate-400">CDO dashboards, SLA monitoring, and strategic planning tools.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ML/AI Services -->
+    <section id="services" class="py-20 px-6 bg-slate-900/50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">ML/AI Services</h2>
+                <p class="text-xl text-slate-400 max-w-2xl mx-auto">
+                    Complete AI pipeline from data ingestion to model serving
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h3 class="font-semibold mb-4 text-indigo-400">Crawling</h3>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li>• Firecrawl</li>
+                        <li>• Crawl4ai</li>
+                        <li>• Playwright</li>
+                        <li>• Jina Reader</li>
+                        <li>• Trafilatura</li>
+                    </ul>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h3 class="font-semibold mb-4 text-emerald-400">Embeddings</h3>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li>• Sentence-Transformers</li>
+                        <li>• BGE, E5</li>
+                        <li>• Word2Vec</li>
+                        <li>• FastText</li>
+                        <li>• OpenAI</li>
+                    </ul>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h3 class="font-semibold mb-4 text-purple-400">OCR/Speech</h3>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li>• Tesseract</li>
+                        <li>• EasyOCR</li>
+                        <li>• Whisper</li>
+                        <li>• Coqui STT</li>
+                        <li>• PaddleOCR</li>
+                    </ul>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-white/5 border border-white/10">
+                    <h3 class="font-semibold mb-4 text-pink-400">LLMs</h3>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li>• Ollama</li>
+                        <li>• GPT4All</li>
+                        <li>• TextGen WebUI</li>
+                        <li>• HuggingFace</li>
+                        <li>• Transformers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Code Preview -->
+    <section class="py-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-4xl font-bold mb-6">AI-Powered Orchestration</h2>
+                    <p class="text-lg text-slate-400 mb-8">
+                        LangGraph agent with AutonomyX specification for intelligent data pipeline management.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center mt-1">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">AutonomyX Certified</h4>
+                                <p class="text-slate-400 text-sm">Full agent lifecycle management</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center mt-1">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">LangGraph Powered</h4>
+                                <p class="text-slate-400 text-sm">Stateful workflows with tool calling</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center mt-1">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold">60+ Services</h4>
+                                <p class="text-slate-400 text-sm">Unified access to data tools</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rounded-2xl overflow-hidden border border-white/10">
+                    <div class="bg-slate-800 px-4 py-2 flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-4 text-slate-400 text-sm">orchestrator.py</span>
+                    </div>
+                    <pre class="p-4 bg-slate-900 text-sm overflow-x-auto"><code class="text-slate-300">from agent import DataPlatformAgent
+
+# Create agent with AutonomyX
+agent = DataPlatformAgent(model="llama3")
+agent.register_with_autonomyx(
+    name="data-pipeline-agent",
+    sponsor_id="admin-001",
+    tenant_id="my-org"
+)
+
+# Run orchestration
+result = await agent.run(
+    "Crawl https://example.com and extract entities"
+)
+
+# Quality check
+await agent.run(
+    "Validate customer_data.csv with Great Expectations"
+)</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl font-bold mb-6">Ready to Build?</h2>
+            <p class="text-xl text-slate-400 mb-8">
+                Start building your data platform with our comprehensive documentation.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="/docs" class="px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition font-semibold">
+                    Read Documentation →
+                </a>
+                <a href="https://github.com" class="px-8 py-4 rounded-xl border border-white/20 hover:bg-white/10 transition font-semibold">
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-white/10">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                            </svg>
+                        </div>
+                        <span class="text-xl font-bold">Data Platform</span>
+                    </div>
+                    <p class="text-slate-400 text-sm">
+                        Enterprise data management with AI-powered orchestration.
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Documentation</h4>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li><a href="/docs/guides" class="hover:text-white transition">Guides</a></li>
+                        <li><a href="/docs/api" class="hover:text-white transition">API Reference</a></li>
+                        <li><a href="/docs/dev" class="hover:text-white transition">Developer Docs</a></li>
+                        <li><a href="/docs/architecture" class="hover:text-white transition">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Services</h4>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li><a href="/docs#crawling" class="hover:text-white transition">Crawling</a></li>
+                        <li><a href="/docs#embedding" class="hover:text-white transition">Embeddings</a></li>
+                        <li><a href="/docs#llm" class="hover:text-white transition">LLMs</a></li>
+                        <li><a href="/docs#governance" class="hover:text-white transition">Governance</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold mb-4">Community</h4>
+                    <ul class="space-y-2 text-slate-400 text-sm">
+                        <li><a href="/blog" class="hover:text-white transition">Blog</a></li>
+                        <li><a href="https://github.com" class="hover:text-white transition">GitHub</a></li>
+                        <li><a href="#" class="hover:text-white transition">Discord</a></li>
+                        <li><a href="#" class="hover:text-white transition">Twitter</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p class="text-slate-400 text-sm">
+                    © 2026 Data Platform. Built with AutonomyX.
+                </p>
+                <div class="flex items-center gap-4">
+                    <a href="#" class="text-slate-400 hover:text-white transition">Privacy</a>
+                    <a href="#" class="text-slate-400 hover:text-white transition">Terms</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

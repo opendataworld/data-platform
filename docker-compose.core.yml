@@ -1,0 +1,147 @@
+# Data Platform Core - Minimal Start
+# Only services needed to run at startup
+# All other services deployed on-demand by agent
+
+name: opendataworld
+
+services:
+
+  # ─── Core Storage ─────────────────────────────────────────────────
+  # PostgreSQL - Core database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-dataplatform}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Cache and state
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Main API (Agent + MCP) ───────────────────────────────────────
+  # The orchestrator with LangGraph agent and MCP server
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "${ORCHESTRATOR_PORT:-8000}:8000"
+    environment:
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-dataplatform}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      - LLM_MODEL=${LLM_MODEL:-llama3}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+      - LAGO_URL=${LAGO_URL:-http://lago:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./orchestrator:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── LangFlow (Visual Builder) ───────────────────────────────────
+  langflow:
+    image: langflowai/langflow:latest
+    ports:
+      - "${LANGFLOW_PORT:-7860}:7860"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/langflow
+      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme}
+      - LANGFLOW_LOAD_EXAMPLES=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - langflow_data:/app/langflow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── Billing (Lago) ──────────────────────────────────────────────
+  lago:
+    image: getlago/lago-api:latest
+    ports:
+      - "${LAGO_PORT:-3000}:3000"
+    environment:
+      - LAGO_DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/lago
+      - LAGO_REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
+      - LAGO_SECRET_KEY_BASE=${LAGO_SECRET_KEY_BASE:-changeme}
+      - LAGO_ENCRYPTION_KEY_BASE=${LAGO_ENCRYPTION_KEY_BASE:-changeme}
+      - LAGO_SMTP_HOST=${SMTP_HOST:-localhost}
+      - LAGO_SMTP_PORT=${SMTP_PORT:-587}
+      - LAGO_SMTP_USER=${SMTP_USER:-}
+      - LAGO_SMTP_PASSWORD=${SMTP_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - lago_data:/app/public/uploads
+
+  # ─── Traefik (Reverse Proxy + SSL) ───────────────────────────────
+  traefik:
+    image: traefik:v3.0
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - traefik_certs:/etc/traefik/certs
+    environment:
+      - DOMAIN=${DOMAIN:-open-data.world}
+    depends_on:
+      - orchestrator
+      - langflow
+      - lago
+
+  # ─── Documentation (Static Site) ─────────────────────────────────
+  docs:
+    image: nginx:alpine
+    ports:
+      - "${DOCS_PORT:-8001}:80"
+    volumes:
+      - ./docs:/usr/share/nginx/html:ro
+    depends_on:
+      - traefik
+
+volumes:
+  postgres_data:
+  redis_data:
+  langflow_data:
+  lago_data:
+  traefik_certs:
+
+networks:
+  default:
+    name: opendataworld

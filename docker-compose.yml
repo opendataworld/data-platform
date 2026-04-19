@@ -6,6 +6,24 @@ name: opendataworld
 
 services:
 
+  # ─── sso ──────────────────────────────────────────────────────────────────────
+  oauth2-proxy:
+    profiles: ["sso"]
+    image: oauth2-proxy/oauth2-proxy:latest
+    ports:
+      - "${OAUTH2_PROXY_PORT}:4180"
+    environment:
+      OAUTH2_PROXY_PROVIDER: keycloak
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${KEYCLOAK_ISSUER_URL}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL}
+      OAUTH2_PROXY_EMAIL_domains: "*"
+      OAUTH2_PROXY_UPSTREAM: "file://./"
+      OAUTH2_PROXY_PASSAuthorizationHeader: "true"
+    # TODO: configure routes to each backend service
+
   # ─── catalog ─────────────────────────────────────────────────────────────────
   openmetadata:
     profiles: ["catalog"]
@@ -17,6 +35,12 @@ services:
       AUTHENTICATION_PUBLIC_KEYS: "[${KEYCLOAK_ISSUER_URL}/protocol/openid-connect/certs]"
       AUTHENTICATION_AUTHORITY: ${KEYCLOAK_ISSUER_URL}
       AUTHENTICATION_CLIENT_ID: ${OPENMETADATA_OIDC_CLIENT_ID}
+      # Email / notifications
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASS}
+      SMTP_SENDER: ${SMTP_FROM}
       # TODO: add MySQL + Elasticsearch deps when installing this profile
 
   # ─── ingest ──────────────────────────────────────────────────────────────────
@@ -30,6 +54,80 @@ services:
       OIDC_CLIENT_ID: ${AIRBYTE_OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${AIRBYTE_OIDC_CLIENT_SECRET}
     # TODO: Airbyte needs temporal, db, worker, webapp — expand on install
+
+  # ─── crawl ───────────────────────────────────────────────────────────────────
+  firecrawl:
+    profiles: ["ingest", "crawl"]
+    image: firecrawlai/firecrawl:latest
+    ports:
+      - "${FIRECRAWL_PORT}:3002"
+    environment:
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    # TODO: add Redis and Postgres deps for production
+
+  crawl4ai:
+    profiles: ["ingest", "crawl"]
+    image: nightly:latest
+    ports:
+      - "${CRAWL4AI_PORT}:8000"
+    environment:
+      CRAWL4AI_REDIS_URL: ${CRAWL4AI_REDIS_URL:-redis://redis:6379}
+      CRAWL4AI_DB_URL: ${CRAWL4AI_DB_URL:-postgresql://postgres:postgres@postgres:5432/crawl4ai}
+      CRAWL4AI_API_TOKEN: ${CRAWL4AI_API_TOKEN}
+    depends_on:
+      - postgres
+      - redis
+
+  redis:
+    profiles: ["crawl"]
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+
+  # ─── label ────────────────────────────────────────────────────────────────────
+  labelstudio:
+    profiles: ["label"]
+    image: heartexlabs/label-studio:latest
+    ports:
+      - "${LABELSTUDIO_PORT}:9090"
+    environment:
+      LABEL_STUDIO_USERNAME: admin
+      LABEL_STUDIO_PASSWORD: ${LABELSTUDIO_PASSWORD}
+      LABEL_STUDIO_SECRET_KEY: ${LABELSTUDIO_SECRET_KEY}
+      LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED: "true"
+      LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT: /label-studio/data
+    volumes:
+      - labelstudio-data:/label-studio/data
+
+  # ─── feedback / annotations ─────────────────────────────────────────────────
+  argilla:
+    profiles: ["label", "feedback"]
+    image: argilla/argilla:latest
+    ports:
+      - "${ARGILLA_PORT}:6900"
+    environment:
+      ARGILLA_API_KEY: ${ARGILLA_API_KEY}
+      ARGILLA_ADMIN_PASSWORD: ${ARGILLA_ADMIN_PASSWORD}
+      ARGILLA_LOCAL: "true"
+      ARGILLA_DATABASE: "sqlite:///argilla.db"
+    volumes:
+      - argilla-data:/var/lib/argilla
+
+  # ─── test / automation ──────────────────────────────────────────────────────
+  playwright:
+    profiles: ["test", "crawl"]
+    image: mcr.microsoft.com/playwright:latest
+    ports:
+      - "${PLAYWRIGHT_PORT}:8080"
+    environment:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "0"
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    volumes:
+      - playwright-data:/ms-playwright
+    # Use for e2e testing and web automation
 
   # ─── resolve ─────────────────────────────────────────────────────────────────
   zingg:
@@ -57,6 +155,12 @@ services:
       - "${SUPERSET_PORT}:8088"
     environment:
       SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      # Email / notifications
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
       # TODO: mount superset_config.py with OIDC client via AUTH_OAUTH
 
   # ─── cdp ─────────────────────────────────────────────────────────────────────
@@ -65,9 +169,28 @@ services:
     image: apache/unomi:latest
     ports:
       - "${UNOMI_PORT}:8181"
+    environment:
+      # Email / notifications
+      MAIL_SMTP_HOST: ${SMTP_HOST}
+      MAIL_SMTP_PORT: ${SMTP_PORT}
+      MAIL_SMTP_USER: ${SMTP_USER}
+      MAIL_SMTP_PASSWORD: ${SMTP_PASS}
+      MAIL_FROM: ${SMTP_FROM}
     # TODO: front with oauth2-proxy for Keycloak SSO; add Elasticsearch dep
 
   # ─── store ───────────────────────────────────────────────────────────────────
+  postgres:
+    profiles: ["store"]
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
   surrealdb:
     profiles: ["store"]
     image: surrealdb/surrealdb:latest
@@ -97,7 +220,1621 @@ services:
     volumes:
       - graphdb-data:/opt/graphdb/home
 
+  # ─── schema / linked data ───────────────────────────────────────────────────
+  jena:
+    profiles: ["kg-edit", "kg-pub"]
+    image: apache/jena:latest
+    ports:
+      - "${JENA_PORT}:3030"
+    environment:
+      JENA_ADMIN_PASSWORD: ${JENA_ADMIN_PASSWORD}
+    volumes:
+      - jena-data:/var/lib/jena
+    # RDF/Schema.org processing and SPARQL queries
+
+  # ─── classification / taxonomy ──────────────────────────────────────────────
+  iab-taxonomy:
+    profiles: ["crawl", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install iab-taxonomy && python -c \"from iab_taxonomy import load_taxonomy; t = load_taxonomy(); print('IAB Taxonomy loaded:', len(t), 'categories')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    # Loads IAB Content Taxonomy for classification
+
+  # ─── reviews / comparison ───────────────────────────────────────────────────
+  g2-api:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install requests && python -c \"print('G2 API client ready - configure G2_API_KEY in .env')\""
+    environment:
+      G2_API_KEY: ${G2_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    # G2 API client for software reviews and comparison data
+
+  # ─── search ───────────────────────────────────────────────────────────────────
+  searxng:
+    profiles: ["search", "crawl"]
+    image: searxng/searxng:latest
+    ports:
+      - "${SEARXNG_PORT}:8080"
+    environment:
+      SEARXNG_BASE_URL: "https://platform.open-data.world"
+      SEARXNG_SECRET: ${SEARXNG_SECRET}
+    volumes:
+      - searxng-data:/etc/searxng
+    # Privacy-respecting meta search engine
+
+  # ─── SEO / analytics ────────────────────────────────────────────────────────
+  google-search-console:
+    profiles: ["search", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install google-api-python-client google-auth-oauthlib && python -c \"print('Google Search Console API client ready - configure GOOGLE_SEARCH_CONSOLE_* in .env')\""
+    environment:
+      GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT: ${GOOGLE_SEARCH_CONSOLE_SERVICE_ACCOUNT}
+      GOOGLE_SEARCH_CONSOLE_PROPERTY_URL: ${GOOGLE_SEARCH_CONSOLE_PROPERTY_URL}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - gsc-data:/data
+    # Google Search Console API for SEO analytics
+
+  # ─── maps / geocoding ───────────────────────────────────────────────────────
+  maps:
+    profiles: ["crawl", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install mapbox libphonenumber geopy shapely plus-codes && python -c \"print('Maps/Geocoding + Plus Codes client ready')\""
+    environment:
+      MAPBOX_ACCESS_TOKEN: ${MAPBOX_ACCESS_TOKEN}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - maps-data:/data
+    # Maps, geocoding, and location services (Mapbox, Google Maps, OpenStreetMap, Plus Codes)
+
+  # ─── knowledge bases ────────────────────────────────────────────────────────
+  wikidata:
+    profiles: ["crawl", "kg-pub"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install wikidata wikipedia-api rdflib && python -c \"print('Wikidata client ready - SPARQL endpoint: https://query.wikidata.org')\""
+    environment:
+      WIKIDATA_API_URL: "https://www.wikidata.org/wiki/Special:EntityData"
+      WIKIDATA_SPARQL_URL: "https://query.wikidata.org/sparql"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - wikidata-cache:/data
+    # Wikidata API and SPARQL endpoint for structured knowledge
+
+  wikipedia-topics:
+    profiles: ["crawl", "kg-pub"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install wikipedia-api beautifulsoup4 spacy && python -c \"print('Wikipedia topics client ready')\""
+    environment:
+      WIKIPEDIA_API_LANG: "en"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - wikipedia-cache:/data
+    # Wikipedia API for topic extraction and article processing
+
+  # ─── product data ────────────────────────────────────────────────────────────
+  google-product-taxonomy:
+    profiles: ["crawl", "ingest", "store"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install requests google-taxonomy && python -c \"from google_taxonomy import get_taxonomy; print('Google Product Taxonomy loaded:', len(get_taxonomy()), 'categories')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - google-taxonomy-data:/data
+    # Google Product Taxonomy for e-commerce categorization
+
+  # ─── NLP ─────────────────────────────────────────────────────────────────────
+  opennlp:
+    profiles: ["crawl", "ingest"]
+    image: apache/opennlp:latest
+    ports:
+      - "${OPENNLP_PORT}:8080"
+    environment:
+      JAVA_OPTS: "-Xmx2g"
+    volumes:
+      - opennlp-models:/models
+    # Apache OpenNLP for sentence detection, tokenization, NER, POS
+
+  # ─── ML / AI ────────────────────────────────────────────────────────────────
+  tensorflow:
+    profiles: ["ml", "ingest"]
+    image: tensorflow/serving:latest
+    ports:
+      - "${TENSORFLOW_PORT}:8501"
+    environment:
+      TENSORFLOW_MODEL_NAME: ${TENSORFLOW_MODEL_NAME:-model}
+    volumes:
+      - tensorflow-models:/models
+    # TensorFlow Serving for model inference
+
+  ultralytics-yolo:
+    profiles: ["ml", "ingest"]
+    image: ultralytics/ultralytics:latest
+    ports:
+      - "${YOLO_PORT}:8000"
+    environment:
+      YOLO_MODEL: ${YOLO_MODEL:-yolov8n.pt}
+      YOLO_DEVICE: ${YOLO_DEVICE:-cpu}
+    volumes:
+      - yolo-models:/models
+    # Ultralytics YOLO for object detection, segmentation, classification
+
+  opencv:
+    profiles: ["ml", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install opencv-python-headless pillow numpy && python -c \"import cv2; print('OpenCV version:', cv2.__version__)\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - opencv-cache:/data
+    # OpenCV for image processing, computer vision, filtering
+
+  # ─── OCR ─────────────────────────────────────────────────────────────────────
+  tesseract:
+    profiles: ["ml", "crawl"]
+    image: tesseract/tesseract:latest
+    ports:
+      - "${TESSERACT_PORT}:8080"
+    environment:
+      TESSERACT_LANG: ${TESSERACT_LANG:-eng}
+    volumes:
+      - tesseract-data:/data
+    # Tesseract OCR for image-to-text
+
+  easyocr:
+    profiles: ["ml", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install easyocr torch torchvision && python -c \"import easyocr; print('EasyOCR ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - easyocr-cache:/data
+    # EasyOCR for multilingual text recognition
+
+  paddleocr:
+    profiles: ["ml", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install paddlepaddle paddleocr && python -c \"from paddleocr import PaddleOCR; print('PaddleOCR ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - paddleocr-cache:/data
+    # PaddleOCR for efficient text recognition
+
+  # ─── Image to Video ────────────────────────────────────────────────────────
+  modelscope-t2v:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install modelscope ms-swift torch && python -c \"print('ModelScope T2V ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - modelscope-cache:/data
+    # ModelScope text-to-video generation
+
+  zeroscope:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install diffusers transformers accelerate torch && python -c \"print('ZeroScope ready - configure model path')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - zeroscope-cache:/data
+    # ZeroScope for image-to-video generation
+
+  animate-anything:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install animate-anything torch && python -c \"print('AnimateAnything ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - animate-anything-cache:/data
+    # AnimateAnything for video generation from images
+
+  # ─── Speech to Text ────────────────────────────────────────────────────────
+  whisper:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install whisper torch && python -c \"import whisper; print('Whisper ready')\""
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - whisper-cache:/data
+    # OpenAI Whisper for speech-to-text
+
+  faster-whisper:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install faster-whisper torch && python -c \"from faster_whisper import WhisperModel; print('Faster Whisper ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - faster-whisper-cache:/data
+    # Faster Whisper with CTranslate2 for faster inference
+
+  coqui-stt:
+    profiles: ["ml", "ingest"]
+    image: coqui/ai-shell:latest
+    ports:
+      - "${COQUI_STT_PORT}:5002"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - coqui-cache:/data
+    # Coqui STT for open-source speech-to-text
+
+  # ─── LLMs ──────────────────────────────────────────────────────────────────
+  ollama:
+    profiles: ["ml", "ingest"]
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Ollama for running local LLMs (Llama, Mistral, etc.)
+
+  gpt4all:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install gpt4all torch && python -c \"from gpt4all import GPT4All; print('GPT4All ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - gpt4all-cache:/data
+    # GPT4All for local LLM inference
+
+  text-generation-webui:
+    profiles: ["ml", "ingest"]
+    image: ghcr.io/oobabooga/text-generation-webui:latest
+    ports:
+      - "${TEXTGEN_WEBUI_PORT}:7860"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - textgen-models:/models
+    # Text Generation WebUI for various LLM models
+
+  # ─── Structured Data LLMs ─────────────────────────────────────────────────
+  json-agent:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install jsonformer jsonmode langchain && python -c \"print('JSON agent ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - json-agent-data:/data
+    # JSONFormer for structured JSON generation from LLMs
+
+  structify:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pydantic langchain openai && python -c \"from pydantic import BaseModel; print('Structify ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - structify-data:/data
+    # Pydantic/structify for schema-guided LLM output
+
+  guidance:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install guidance lm-format-enforcer && python -c \"import guidance; print('Guidance ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - guidance-data:/data
+    # Microsoft Guidance for constrained generation
+
+  outlines:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install outlines transformers && python -c \"import outlines; print('Outlines ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - outlines-data:/data
+    # Outlines for structured generation with grammars
+
+  jsonformer:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install jsonformer torch && python -c \"from jsonformer import Jsonformer; print('JSONFormer ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - jsonformer-data:/data
+    # JSONFormer for constrained JSON generation
+
+  # ─── Media Taxonomies ──────────────────────────────────────────────────────
+  iptc-media-topics:
+    profiles: ["crawl", "ingest", "store"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install iptcinfo3 newsyaml && python -c \"from iptcinfo3 import IPTCInfo; print('IPTC Media Topics ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - iptc-data:/data
+    # IPTC Media Topics for news/media taxonomy classification
+
+  # ─── Workflow Orchestration ────────────────────────────────────────────────
+  temporal:
+    profiles: ["ml", "ingest", "crawl"]
+    image: temporalio/auto-setup:latest
+    ports:
+      - "${TEMPORAL_PORT}:7233"
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD}
+      POSTGRES_SEEDS: postgres
+    depends_on:
+      - postgres
+    # Temporal.io workflow orchestration for ML pipelines
+
+  # ─── Clustering / Unsupervised ML ─────────────────────────────────────────
+  clustering:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install scikit-learn pandas numpy hdbscan kneed && python -c \"from sklearn.cluster import KMeans; print('Clustering libs ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - clustering-data:/data
+    # Clustering: K-Means, DBSCAN, HDBSCAN, hierarchical clustering
+
+  pyclustering:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pyclustering && python -c \"from pyclustering.cluster import kmeans; print('PyClustering ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - pyclustering-data:/data
+    # PyClustering for advanced clustering algorithms
+
+  faiss:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install faiss-cpu faiss-gpu && python -c \"import faiss; print('FAISS ready - vector similarity search')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - faiss-data:/data
+    # Facebook AI Similarity Search for vector clustering
+
+  annoy:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install annoy && python -c \"import annoy; print('Annoy ready - approximate nearest neighbors')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - annoy-data:/data
+    # Annoy for approximate nearest neighbor clustering
+
+  hnswlib:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install hnswlib && python -c \"import hnswlib; print('HNSWlib ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - hnswlib-data:/data
+    # HNSWlib for hierarchical navigable small world graphs
+
+  # ─── Embedding Models for Clustering ───────────────────────────────────────
+  sentence-transformers:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install sentence-transformers torch && python -c \"from sentence_transformers import SentenceTransformer; print('Sentence Transformers ready')\""
+    environment:
+      SENTENCE_TRANSFORMERS_MODEL: ${SENTENCE_TRANSFORMERS_MODEL:-all-MiniLM-L6-v2}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - sentence-transformers-cache:/data
+    # Sentence transformers for embedding-based clustering
+
+  flair:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install flair torch && python -c \"from flair.embeddings import WordEmbeddings; print('Flair ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - flair-data:/data
+    # Flair for contextual embeddings
+
+  spacy-transformers:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install spacy transformers spacy-transformers && python -c \"import spacy; print('spaCy Transformers ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - spacy-data:/data
+    # spaCy with transformers for embeddings
+
+  langchain-embeddings:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install langchain langchain-community langchain-text-splitters && python -c \"from langchain.embeddings import HuggingFaceEmbeddings; print('LangChain Embeddings ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - langchain-embeddings-cache:/data
+    # LangChain embedding wrappers
+
+  bertopic:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install bertopic sentence-transformers umap-learn hdbscan && python -c \"from bertopic import BERTopic; print('BERTopic ready - topic modeling')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - bertopic-data:/data
+    # BERTopic for topic clustering with embeddings
+
+  # ─── Image Classification / Tagging ────────────────────────────────────────
+  timm:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install timm torch torchvision && python -c \"import timm; print('TIMM ready -', len(timm.list_models()), 'models')\""
+    environment:
+      TIMM_MODEL: ${TIMM_MODEL:-resnet50}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - timm-cache:/data
+    # PyTorch Image Models (timm) for classification
+
+  clip:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install clip-by-openai transformers torch && python -c \"import clip; print('CLIP ready - zero-shot image classification')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - clip-cache:/data
+    # OpenAI CLIP for zero-shot image classification and tagging
+
+  transformers-vision:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install transformers torch torchvision && python -c \"from transformers import AutoModelForImageClassification; print('Transformers Vision ready')\""
+    environment:
+      VISION_MODEL: ${VISION_MODEL:-google/vit-base-patch16-224}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - transformers-vision-cache:/data
+    # HuggingFace Transformers for vision models
+
+  detr:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install detr-transformers torch torchvision && python -c \"print('DETR ready - detection transformer')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - detr-cache:/data
+    # DETR for object detection and segmentation
+
+  sam:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install segment-anything torch && python -c \"from segment_anything import sam_model_registry; print('SAM ready - Segment Anything')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - sam-cache:/data
+    # Segment Anything Model for image segmentation
+
+  blip:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install salesforce-lavis transformers torch && python -c \"from lavis.models import load_model; print('BLIP ready - image captioning')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - blip-cache:/data
+    # BLIP for image captioning and VQA
+
+  grounding-dino:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install groundingdino torch torchvision && python -c \"print('Grounding DINO ready - text-guided detection')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - grounding-dino-cache:/data
+    # Grounding DINO for text-guided object detection
+
+  # ─── Document Processing ───────────────────────────────────────────────────
+  unstructured:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install unstructured['pdf'] unstructured-client python-magic && python -c \"from unstructured.partition.pdf import partition_pdf; print('Unstructured.io ready - document parsing')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - unstructured-data:/data
+    # Unstructured.io for PDF, DOCX, image document parsing
+
+  unstructured-api:
+    profiles: ["ingest", "crawl"]
+    image: unstructuredio/unstructured-api:latest
+    ports:
+      - "${UNSTRUCTURED_API_PORT}:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - unstructured-api-data:/data
+    # Unstructured.io API server for document processing
+
+  marquez:
+    profiles: ["ingest", "crawl"]
+    image: marquezproject/marquez:latest
+    ports:
+      - "${MARQUEZ_PORT}:3000"
+    environment:
+      MARQUEZ_DB_HOST: postgres
+      MARQUEZ_DB_PORT: 5432
+      MARQUEZ_DB_USER: ${POSTGRES_USER}
+      MARQUEZ_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    # Marquez for data lineage and document processing metadata
+
+  # ─── Embedding Techniques ───────────────────────────────────────────────────
+  word2vec:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install gensim numpy && python -c \"from gensim.models import Word2Vec; print('Word2Vec ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - word2vec-data:/data
+    # Word2Vec for word embeddings
+
+  fasttext:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install fasttext numpy && python -c \"import fasttext; print('FastText ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - fasttext-data:/data
+    # FastText for subword embeddings
+
+  gpt-embedding:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install openai tiktoken && python -c \"import tiktoken; print('GPT Embeddings ready - text-embedding-ada-002')\""
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - gpt-embedding-data:/data
+    # OpenAI GPT embeddings (text-embedding-ada-002, etc.)
+
+  cohere:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install cohere && python -c \"import cohere; print('Cohere ready - embed-multilingual-v3.0')\""
+    environment:
+      COHERE_API_KEY: ${COHERE_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - cohere-data:/data
+    # Cohere embeddings for multilingual support
+
+  azure-openai-embeddings:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install openai azure-identity && python -c \"from openai import AzureOpenAI; print('Azure OpenAI Embeddings ready')\""
+    environment:
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - azure-embeddings-data:/data
+    # Azure OpenAI embeddings deployment
+
+  bge-embeddings:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install FlagEmbedding && python -c \"from FlagEmbedding import FlagModel; print('BGE ready - BAAI/bge-base-en-v1.5')\""
+    environment:
+      BGE_MODEL: ${BGE_MODEL:-BAAI/bge-base-en-v1.5}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - bge-data:/data
+    # BGE (BAAI General Embeddings) for reranking and retrieval
+
+  e5-embeddings:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install transformers torch && python -c \"from transformers import AutoModel; print('E5 embeddings ready')\""
+    environment:
+      E5_MODEL: ${E5_MODEL:-intfloat/e5-base-v2}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - e5-data:/data
+    # E5 embeddings for passage and query embedding
+
+  instructor-embeddings:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install InstructorEmbedding torch && python -c \"from InstructorEmbedding import INSTRUCTOR; print('Instructor ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - instructor-data:/data
+    # Instructor embeddings with custom instructions
+
+  # ─── Transformers Library ─────────────────────────────────────────────────
+  huggingface-transformers:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install transformers torch accelerate datasets && python -c \"from transformers import pipeline; print('HuggingFace Transformers ready')\""
+    environment:
+      HF_HOME: /data/huggingface
+      TRANSFORMERS_CACHE: /data/transformers-cache
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - huggingface-data:/data
+    # HuggingFace Transformers for NLP tasks (NER, QA, classification, etc.)
+
+  # ─── Diffusion Models ─────────────────────────────────────────────────────
+  diffusers:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install diffusers transformers accelerate torch && python -c \"from diffusers import StableDiffusionPipeline; print('Diffusers ready - Stable Diffusion')\""
+    environment:
+      HF_HOME: /data/huggingface
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - diffusers-data:/data
+    # HuggingFace Diffusers for Stable Diffusion, image generation
+
+  stable-diffusion:
+    profiles: ["ml", "ingest"]
+    image: stabilityai/stable-diffusion-webui:latest
+    ports:
+      - "${STABLE_DIFFUSION_PORT}:7860"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - stable-diffusion-data:/data
+    # Stable Diffusion WebUI for image generation
+
+  runwayml-stable-diffusion:
+    profiles: ["ml", "ingest"]
+    image: runwayml/stable-diffusion:inpainting
+    command: >
+      bash -c "pip install diffusers torch && python -c \"print('RunwayML Stable Diffusion ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - runwayml-data:/data
+    # RunwayML Stable Diffusion variants
+
+  compel:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install compel diffusers torch && python -c \"from compel import Compel; print('Compel ready - prompt weighting')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - compel-data:/data
+    # Compel for prompt weighting in diffusion models
+
+  lora:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install peft diffusers torch && python -c \"from peft import LoraConfig; print('LoRA ready - fine-tuning diffusion')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - lora-data:/data
+    # PEFT/LoRA for fine-tuning diffusion models
+
+  controlnet:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install controlnet-aux diffusers torch && python -c \"from controlnet_aux import CannyEdgeDetector; print('ControlNet ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - controlnet-data:/data
+    # ControlNet for controlled image generation
+
+  dreambooth:
+    profiles: ["ml", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install dreambooth diffusers torch accelerate && python -c \"print('DreamBooth ready - custom subject training')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - dreambooth-data:/data
+    # DreamBooth for training custom subjects
+
+  # ─── Text Chunking ────────────────────────────────────────────────────────
+  langchain-text-splitters:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install langchain-text-splitters langchain && python -c \"from langchain.text_splitter import CharacterTextSplitter; print('LangChain Text Splitters ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - langchain-splitters-data:/data
+    # LangChain text splitters (recursive, markdown, code, etc.)
+
+  chunking:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install tiktoken beautifulsoup4 lxml && python -c \"print('Chunking utils ready - token, semantic, recursive')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - chunking-data:/data
+    # Token-based, semantic, and recursive chunking
+
+  semantic-chunker:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install semantic-chunker sentence-transformers && python -c \"from semantic_chunker import SemanticChunker; print('Semantic Chunker ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - semantic-chunker-data:/data
+    # Semantic chunking using embeddings
+
+  markdown-splitter:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install markdownify python-markdown && python -c \"import markdown; print('Markdown splitter ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - markdown-splitter-data:/data
+    # Markdown-aware text splitting
+
+  # ─── Unstructured to Structured ───────────────────────────────────────────
+  llamaindex:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install llama-index && python -c \"from llama_index import Document; print('LlamaIndex ready - document indexing')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - llamaindex-data:/data
+    # LlamaIndex for indexing and structuring data from various sources
+
+  document-intelligence:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install azure-ai-formrecognizer python-docx pdfplumber && python -c \"print('Document Intelligence ready - form recognition')\""
+    environment:
+      AZURE_FORM_RECOGNIZER_ENDPOINT: ${AZURE_FORM_RECOGNIZER_ENDPOINT}
+      AZURE_FORM_RECOGNIZER_KEY: ${AZURE_FORM_RECOGNIZER_KEY}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - document-intelligence-data:/data
+    # Azure Document Intelligence for form/table extraction
+
+  table-extractor:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install tabula-py camelot-py[cv] pandas && python -c \"import tabula; print('Table Extractor ready - PDF tables')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - table-extractor-data:/data
+    # Tabula/Camelot for extracting tables from PDFs
+
+  selectorlib:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install selectorlib yarl requests && python -c \"from selectorlib import Extractor; print('Selectorlib ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - selectorlib-data:/data
+    # Selectorlib for extracting structured data from web pages
+
+  presidio-analyzer:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install presidio-analyzer presidio-anonymizer faker && python -c \"from presidio_analyzer import AnalyzerEngine; print('Presidio ready - PII detection')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - presidio-data:/data
+    # Microsoft Presidio for PII detection and anonymization
+
+  spacy-ner:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install spacy && python -c \"import spacy; nlp = spacy.load('en_core_web_sm'); print('spaCy NER ready')\""
+    environment:
+      SPACY_MODEL: ${SPACY_MODEL:-en_core_web_sm}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - spacy-ner-data:/data
+    # spaCy NER for named entity extraction
+
+  text-extract:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install trafilatura newspaper3k readability-lxml && python -c \"import trafilatura; print('Text Extract ready - web content extraction')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - text-extract-data:/data
+    # Trafilatura for web content extraction
+
+  jina-reader:
+    profiles: ["ingest", "crawl"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install jina-reader && python -c \"from jina import Reader; print('Jina Reader ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - jina-reader-data:/data
+    # Jina Reader for extracting clean content from URLs
+
+  grobid:
+    profiles: ["ingest", "crawl"]
+    image: lfoppiano/grobid:0.7.2
+    ports:
+      - "${GROBID_PORT}:8070"
+    environment:
+      GROBID_VERSION: "0.7.2"
+    volumes:
+      - grobid-data:/data
+    # GROBID for extracting structure from scientific PDFs
+
+  # ─── Data Governance / Compliance ─────────────────────────────────────────
+  great-expectations:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install great-expectations pandas sqlalchemy && python -c \"import great_expectations; print('Great Expectations ready - data quality')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - great-expectations-data:/data
+    # Great Expectations for data quality validation
+
+  soda-core:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install soda-core-spark soda-core-postgres && python -c \"import soda; print('Soda Core ready - data monitoring')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - soda-data:/data
+    # Soda Core for data quality monitoring
+
+  datafold:
+    profiles: ["ingest", "ml"]
+    image: datafold/datafold:latest
+    ports:
+      - "${DATAFOLD_PORT}:8080"
+    environment:
+      DATAFOLD_DB_HOST: postgres
+      DATAFOLD_DB_PORT: 5432
+      DATAFOLD_DB_USER: ${POSTGRES_USER}
+      DATAFOLD_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    # Datafold for data diffing and quality
+
+  datahub:
+    profiles: ["catalog", "ingest"]
+    image: linkedin/datahub-frontend-react:latest
+    ports:
+      - "${DATAHUB_PORT}:9002"
+    environment:
+      DATAHUB_GMS_HOST: datahub-gms
+      DATAHUB_GMS_PORT: 8080
+    depends_on:
+      - postgres
+    # DataHub for data catalog and governance
+
+  amundsen:
+    profiles: ["catalog", "ingest"]
+    image: amundsenio/frontend:latest
+    ports:
+      - "${AMUNDSEN_PORT}:5000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - amundsen-data:/data
+    # Amundsen for data discovery and catalog
+
+  atlas:
+    profiles: ["catalog", "ingest"]
+    image: apache/atlas:latest
+    ports:
+      - "${ATLAS_PORT}:21000"
+    environment:
+      HADOOP_HOME: /opt/hadoop
+    volumes:
+      - atlas-data:/data
+    # Apache Atlas for data governance and metadata
+
+  collibra:
+    profiles: ["catalog", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install collibra-rest-api requests && python -c \"print('Collibra ready - data governance')\""
+    environment:
+      COLLIBRA_URL: ${COLLIBRA_URL}
+      COLLIBRA_USERNAME: ${COLLIBRA_USERNAME}
+      COLLIBRA_PASSWORD: ${COLLIBRA_PASSWORD}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - collibra-data:/data
+    # Collibra for data governance platform
+
+  olivere:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install openmetadata-ingestion pandas && python -c \"print('OpenMetadata ready - metadata ingestion')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - openmetadata-data:/data
+    # OpenMetadata for metadata management
+
+  marquez:
+    profiles: ["ingest", "catalog"]
+    image: marquezproject/marquez:latest
+    ports:
+      - "${MARQUEZ_LINEAGE_PORT}:3000"
+    environment:
+      MARQUEZ_DB_HOST: postgres
+      MARQUEZ_DB_PORT: 5432
+      MARQUEZ_DB_USER: ${POSTGRES_USER}
+      MARQUEZ_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    # Marquez for data lineage
+
+  # ─── Named Entity Resolution ────────────────────────────────────────────────────
+  entity-resolution:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install SpaCy spacy-entity-linker networkx && python -c \"print('Entity Resolution ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - entity-resolution-data:/data
+    # spaCy Entity Linker for entity resolution to knowledge bases
+
+  wink:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pywikibot wikipedia-api && python -c \"print('WINK ready - Wikipedia entity linking')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - wink-data:/data
+    # WINK for Wikipedia entity resolution
+
+  relik:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install relik-ner torch && python -c \"from relik import Relik; print('ReLiK ready - Relation-aware Entity Linking')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - relik-data:/data
+    # ReLiK for relation-aware entity linking
+
+  # ─── Data Quality / Profiling ─────────────────────────────────────────────
+  great-expectations:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install great-expectations pandas sqlalchemy && python -c \"import great_expectations; print('Great Expectations ready - data quality')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - great-expectations-data:/data
+    # Great Expectations for data quality validation
+
+  ydata-profiling:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install ydata-profiling pandas && python -c \"from ydata_profiling import ProfileReport; print('ydata-profiling ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ydata-profiling-data:/data
+    # YData Profiling for automated data quality reports
+
+  pandas-profiling:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pandas-profiling pandas && python -c \"from pandas_profiling import ProfileReport; print('Pandas Profiling ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - pandas-profiling-data:/data
+    # Pandas Profiling for quick data insights
+
+  # ─── Data Integration ───────────────────────────────────────────
+  airflow:
+    profiles: ["ingest", "ml"]
+    image: apache/airflow:latest
+    ports:
+      - "${AIRFLOW_PORT}:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airflow
+    volumes:
+      - airflow-dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+    # Apache Airflow for workflow orchestration
+
+  dagster:
+    profiles: ["ingest", "ml"]
+    image: dagster/dagster:latest
+    ports:
+      - "${DAGSTER_PORT}:3000"
+    environment:
+      DAGSTER_HOME: /opt/dagster/dagster_home
+    volumes:
+      - dagster-data:/opt/dagster/dagster_home
+    # Dagster for data orchestration
+
+  prefect:
+    profiles: ["ingest", "ml"]
+    image: prefecthq/prefect:3-latest
+    ports:
+      - "${PREFECT_PORT}:4200"
+    environment:
+      PREFECT_HOME: /root/.prefect
+    volumes:
+      - prefect-data:/root/.prefect
+    # Prefect for data workflow automation
+
+  # ─── Data Streaming ────────────────────────────────────────────
+  kafka:
+    profiles: ["ingest", "ml"]
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "${KAFKA_PORT}:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    # Apache Kafka for event streaming
+
+  zookeeper:
+    profiles: ["ingest", "ml"]
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    # Zookeeper for Kafka
+
+  redpanda:
+    profiles: ["ingest", "ml"]
+    image: redpandadata/redpanda:latest
+    ports:
+      - "${REDPANDA_PORT}:9092"
+    command: -v
+    # Redpanda (Kafka-compatible) for streaming
+
+  # ─── ETL / Data Virtualization ──────────────────────────────────────────
+  apache-pinot:
+    profiles: ["ingest", "ml"]
+    image: apachepinot/pinot:latest
+    ports:
+      - "${PINOT_PORT}:9000"
+    # Apache Pinot for real-time analytics
+
+  trino:
+    profiles: ["ingest", "ml"]
+    image: trinodb/trino:latest
+    ports:
+      - "${TRINO_PORT}:8080"
+    environment:
+      TRINO_ENV: trino
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432
+    # Trino for distributed SQL query engine
+
+  duckdb:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install duckdb duckdb-client && python -c \"import duckdb; print('DuckDB ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - duckdb-data:/data
+    # DuckDB for embedded analytics
+
+  clickhouse:
+    profiles: ["ingest", "ml"]
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - "${CLICKHOUSE_PORT}:8123"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    # ClickHouse for OLAP analytics
+
+  # ─── Data Replication / CDC ─────────────────────────────────────
+  debezium:
+    profiles: ["ingest", "ml"]
+    image: debezium/connect:latest
+    ports:
+      - "${DEBEZIUM_PORT}:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: debezium-group
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+    depends_on:
+      - kafka
+    # Debezium for change data capture
+
+  airbyte:
+    profiles: ["ingest", "ml"]
+    image: airbyte/normalization:latest
+    ports:
+      - "${AIRBYTE_PORT}:8000"
+    environment:
+      AIRBYTE_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/airbyte
+    volumes:
+      - airbyte-data:/data
+    # Airbyte for data integration / CDC
+
+  meltano:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install meltano && python -c \"import meltano; print('Meltano ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - meltano-data:/data
+    # Meltano for ELT pipelines
+
+  # ─── Data Masking / Anonymization ─────────────────────────────────
+  presidio-analyzer:
+    profiles: ["ingest", "crawl", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install presidio-analyzer presidio-anonymizer faker && python -c \"from presidio_analyzer import AnalyzerEngine; print('Presidio ready - PII detection')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - presidio-data:/data
+    # Microsoft Presidio for PII detection and anonymization
+
+  # ─── Data Platforms ──────────────────────────────────────────────────
+  # (Data Warehouse, Lakehouse - already have postgres, surrealdb, etc above)
+
+  # ─── Data Architecture / catalogs ──────────────────────────────────
+  # Data catalogs are already covered by: datahub, amundsen, atlas, collibra, openmetadata
+
+  # ─── Data Engineering ────────────────────────────────────────────
+  # Already have: airflow, dagster, prefect, temporal
+
+  # ─── Data Transfer / Movement ────────────────────────────────────────
+  rclone:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install rclone && python -c \"import rclone; print('rclone ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - rclone-data:/data
+    # rclone for data transfer between cloud/storage
+
+  # ─── Data Processing / ETL ─────────────────────────────────────
+  # Already have: trino, duckdb, clickhouse, apache-pinot
+
+  # ─── Data Optimization ────────────────────────────────────────────
+  data-optimization:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pyarrow pandas && python -c \"print('Data optimization ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-optimization-data:/data
+    # Data optimization utilities
+
+  # ─── Data Reduction / Compression ────────────────────────────────
+  data-reduction:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install lz4 zstandard pyzstd && python -c \"print('Data reduction ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-reduction-data:/data
+    # Data compression/reduction utilities
+
+  # ─── Data Silos / Consolidation ───────────────────────────
+  data-consolidation:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install sqlalchemy pandas && python -c \"print('Data consolidation ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-consolidation-data:/data
+    # Tools to break down data silos
+
+  # ─── Data Strategy / Planning ─────────────────────────────────
+
+  # ─── Data Democratization ────────────────────────────────
+  data-catalog-democratization:
+    profiles: ["catalog", "ingest"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install sqlalchemy pandas openmetadata && python -c \"print('Data democratization ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - democratization-data:/data
+    # Tools for data democratization
+
+  # ─── Data SLA Management ─────────────────────────────────────
+  data-sla:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install prometheus-client pandas && python -c \"print('Data SLA ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-sla-data:/data
+    # Data SLA monitoring
+
+  # ─── Data / Big Data ──────────────────────────────────────────────────────
+  bigdata-processing:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pyspark dask distributed && python -c \"import pyspark; print('Big data ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - bigdata-data:/data
+    # Big data processing (PySpark, Dask)
+
+  # ─── Data Modernization ─────────────────────────────────────────
+  data-modernization:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install sqlalchemy migrationbuilder && python -c \"print('Data modernization ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-modernization-data:/data
+    # Data migration and modernization
+
+  # ─── Data Fragmentation ───────────────────────────────────────────
+  data-fragmentation:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install pandas networkx && python -c \"print('Data fragmentation analysis ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-fragmentation-data:/data
+    # Analyze and resolve data fragmentation
+
+  # ─── Chief Data Officer (CDO) Tools ─────────────────────────
+  cdo-dashboard:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install streamlit pandas plotly && python -c \"print('CDO dashboard ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - cdo-data:/data
+    ports:
+      - "${CDO_PORT}:8501"
+    # CDO dashboard for data governance metrics
+
+  lago-data:
+
+  # ─── Billing / Monetization ───────────────────────────────────────────
+  lago:
+    profiles: ["ingest", "ml"]
+    image: getlago/lago-open:latest
+    ports:
+      - "${LAGO_PORT}:3000"
+    environment:
+      LAGO_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/lago
+      LAGO_REDIS_URL: redis://redis:6379
+      LAGO_SECRET_KEY_BASE: ${LAGO_SECRET_KEY_BASE:-changeme}
+      LAGO_ENCRYPTION_KEY_BASE: ${LAGO_ENCRYPTION_KEY_BASE:-changeme}
+      LAGO_INTEGRATION_WEBHOOK_URL: ${LAGO_WEBHOOK_URL}
+    depends_on:
+      - postgres
+      - redis
+    # Lago for usage-based billing and metering
+  data-strategy:
+    profiles: ["ingest", "ml"]
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install networkx pyvis pandas && python -c \"print('Data strategy ready')\""
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - data-strategy-data:/data
+    # Data strategy planning tools
+
+  # ─── Data Visibilty / Catalog ───────────────────────────────
+  # Already covered: datahub, amundsen, atlas, collibra, openmetadata
+    profiles: ["ingest", "ml"]
+    image: langflowai/langflow:latest
+    ports:
+      - "${LANGFLOW_PORT}:7860"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/langflow
+      LANGFLOW_ENABLE_STREAMING: "true"
+    volumes:
+      - langflow-data:/data
+    # LangFlow for visual LangChain workflow builder
+
+  n8n:
+    profiles: ["ingest", "ml"]
+    image: n8nio/n8n:latest
+    ports:
+      - "${N8N_PORT}:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER
+      - N8N_BASIC_AUTH_PASSWORD
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - GENERIC_TIMEZONE=UTC
+    volumes:
+      - n8n-data:/home/node/.n8n
+    # n8n for workflow automation
+
+  flowise:
+    profiles: ["ingest", "ml"]
+    image: flowiseai/flowise:latest
+    ports:
+      - "${FLOWISE_PORT}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/flowise
+      APIKEY_ENV FLOWISE_API_KEY
+      SECRETKEY_ENV
+    volumes:
+      - flowise-data:/root/.flowise
+    # Flowise for drag-and-drop LLM flow builder
+
+  promptly:
+    profiles: ["ingest", "ml"]
+    image: TrumanBorg/promptly-web:latest
+    ports:
+      - "${PROMPTLY_PORT}:8501"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - promptly-data:/data
+    # Promptly for prompt engineering and testing
+
+  chainlit:
+    profiles: ["ingest", "ml"]
+    image: ghcr.io/chainlit/chainlit:latest
+    ports:
+      - "${CHAINLIT_PORT}:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - chainlit-data:/data
+    # Chainlit for building conversational AI interfaces
+
+  transformers-api:
+    profiles: ["ml", "ingest"]
+    image: huggingface/transformers-pytorch-gpu:latest
+    ports:
+      - "${HF_API_PORT}:8080"
+    environment:
+      HF_HOME: /data/huggingface
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - transformers-api-data:/data
+    # HuggingFace Inference API for model serving
+
 volumes:
   surrealdb-data:
   terminusdb-storage:
   graphdb-data:
+  postgres-data:
+  redis-data:
+  labelstudio-data:
+  argilla-data:
+  playwright-data:
+  jena-data:
+  searxng-data:
+  gsc-data:
+  maps-data:
+  wikidata-cache:
+  wikipedia-cache:
+  google-taxonomy-data:
+  opennlp-models:
+  tensorflow-models:
+  yolo-models:
+  opencv-cache:
+  tesseract-data:
+  easyocr-cache:
+  paddleocr-cache:
+  modelscope-cache:
+  zeroscope-cache:
+  animate-anything-cache:
+  whisper-cache:
+  faster-whisper-cache:
+  coqui-cache:
+  ollama-models:
+  gpt4all-cache:
+  textgen-models:
+  json-agent-data:
+  structify-data:
+  guidance-data:
+  outlines-data:
+  jsonformer-data:
+  iptc-data:
+  temporal-data:
+  clustering-data:
+  pyclustering-data:
+  faiss-data:
+  annoy-data:
+  hnswlib-data:
+  sentence-transformers-cache:
+  flair-data:
+  spacy-data:
+  langchain-embeddings-cache:
+  bertopic-data:
+  timm-cache:
+  clip-cache:
+  transformers-vision-cache:
+  detr-cache:
+  sam-cache:
+  blip-cache:
+  grounding-dino-cache:
+  unstructured-data:
+  unstructured-api-data:
+  marquez-data:
+  word2vec-data:
+  fasttext-data:
+  gpt-embedding-data:
+  cohere-data:
+  azure-embeddings-data:
+  bge-data:
+  e5-data:
+  instructor-data:
+  huggingface-data:
+  transformers-api-data:
+  diffusers-data:
+  stable-diffusion-data:
+  runwayml-data:
+  compel-data:
+  lora-data:
+  controlnet-data:
+  dreambooth-data:
+  langchain-splitters-data:
+  chunking-data:
+  semantic-chunker-data:
+  markdown-splitter-data:
+  llamaindex-data:
+  document-intelligence-data:
+  table-extractor-data:
+  selectorlib-data:
+  presidio-data:
+  spacy-ner-data:
+  text-extract-data:
+  jina-reader-data:
+  grobid-data:
+  great-expectations-data:
+  soda-data:
+  datafold-data:
+  datahub-data:
+  amundsen-data:
+  atlas-data:
+  collibra-data:
+  openmetadata-data:

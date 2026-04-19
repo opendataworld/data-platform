@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "data-platform": {
+      "command": "python",
+      "args": ["${HOME}/.data-platform/orchestrator/mcp_services.py"],
+      "env": {
+        "PYTHONPATH": "${HOME}/.data-platform/orchestrator"
+      }
+    }
+  }
+}
