@@ -28,6 +28,7 @@ services:
 
   orchestrator:
     build: ./orchestrator
+    image: ghcr.io/opendataworld/orchestrator:latest
     ports:
       - "8000:8000"
     depends_on:
