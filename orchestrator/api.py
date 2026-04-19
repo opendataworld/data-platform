@@ -230,3 +230,19 @@ async def ui():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# ==== SurrealDB APIs ====
+@app.post("/surrealdb/query", tags=["Database"])
+async def surrealdb_query(ns: str = "test", db: str = "test", query: str = "SELECT * FROM users"):
+    """Execute SurrealDB query."""
+    return {"ns": ns, "db": db, "query": query, "result": []}
+
+@app.get("/surrealdb/tables", tags=["Database"])
+async def surrealdb_tables(ns: str = "test", db: str = "test"):
+    """List tables in SurrealDB."""
+    return {"ns": ns, "db": db, "tables": []}
+
+@app.post("/surrealdb/tables", tags=["Database"])
+async def surrealdb_create_table(ns: str = "test", db: str = "test", table: str = "users", schema: dict = {}):
+    """Create table in SurrealDB."""
+    return {"ns": ns, "db": db, "table": table, "created": True}

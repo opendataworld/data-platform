@@ -17,6 +17,16 @@ services:
     volumes:
       - redis_data:/data
 
+  surrealdb:
+    image: surrealdb:latest
+    ports:
+      - "8001:8000"
+      - "3306:3306"
+    environment:
+      - SURREAL_USER=root
+      - SURREAL_PASS=root
+    command: start --user root --pass root
+
   orchestrator:
     build: ./orchestrator
     ports:
@@ -36,8 +46,8 @@ services:
       - ./orchestrator/langflow_components:/app/langflow_components
       - langflow_data:/app/langflow
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/langflow
-      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme}
+      - DATABASE_URL=postgresql://admin:changeme@postgres:5432/langflow
+      - LANGFLOW_SECRET_KEY=changeme
       - LANGFLOW_LOAD_EXAMPLES=false
 
 volumes:
@@ -48,13 +58,3 @@ volumes:
 networks:
   default:
     name: opendataworld
-
-  surrealdb:
-    image: surrealdb:latest
-    ports:
-      - "8000:8000"
-      - "3306:3306"
-    environment:
-      - SURREAL_USER=root
-      - SURREAL_PASS=root
-    command: start --user root --pass root
