@@ -562,3 +562,55 @@ class ServiceRegistry:
 get_agent = lambda: None
 create_tools = lambda: []
 
+
+
+# ==== WordPress Blog Tool ====
+def create_wordpress_tools():
+    """Create WordPress blog publishing tools."""
+    import requests
+    from typing import Optional
+    
+    @tool
+    def create_wordpress_post(
+        site_url: str,
+        username: str,
+        application_password: str,
+        title: str,
+        content: str,
+        status: str = "draft",
+        categories: Optional[list] = None,
+        tags: Optional[list] = None
+    ) -> dict:
+        """Publish a blog post to WordPress via REST API."""
+        api_url = site_url.rstrip("/") + "/wp-json/wp/v2/posts"
+        auth = (username, application_password)
+        data = {
+            "title": title,
+            "content": content,
+            "status": status,
+        }
+        if categories:
+            data["categories"] = categories
+        if tags:
+            data["tags"] = tags
+        
+        resp = requests.post(api_url, json=data, auth=auth, timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+    
+    @tool
+    def list_wordpress_posts(
+        site_url: str,
+        username: str,
+        application_password: str,
+        per_page: int = 10
+    ) -> dict:
+        """List posts from WordPress site."""
+        api_url = site_url.rstrip("/") + f"/wp-json/wp/v2/posts?per_page={per_page}"
+        auth = (username, application_password)
+        
+        resp = requests.get(api_url, auth=auth, timeout=30)
+        resp.raise_for_status()
+        return {"posts": resp.json()}
+    
+    return [create_wordpress_post, list_wordpress_posts]
