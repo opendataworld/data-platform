@@ -109,13 +109,13 @@ SERVICE_PRICING = {
     ),
     
     # Data Governance
-    "governance.datahub": ServicePricing(1,
+    "governance.datahub": ServicePricing(unit_price_cents=1, service_id="governance-datahub", service_name="DataHub Catalog", monthly_price_cents=49900, unit="month")
         service_id="governance-datahub",
         service_name="DataHub Catalog",
         monthly_price_cents=49900,  # $499/month
         unit="month"
     ),
-    "governance.atlas": ServicePricing(1,
+    "governance.atlas": ServicePricing(unit_price_cents=1, service_id="governance-atlas", service_name="Atlas Governance", monthly_price_cents=39900, unit="month")
         service_id="governance-atlas",
         service_name="Atlas Governance",
         monthly_price_cents=39900,
@@ -123,13 +123,13 @@ SERVICE_PRICING = {
     ),
     
     # Workflow Orchestration
-    "workflow.airflow": ServicePricing(1,
+    "workflow.airflow": ServicePricing(unit_price_cents=1, service_id="workflow-airflow", service_name="Airflow Orchestration", monthly_price_cents=29900, unit="month")
         service_id="workflow-airflow",
         service_name="Airflow Orchestration",
         monthly_price_cents=29900,
         unit="month"
     ),
-    "workflow.prefect": ServicePricing(1,
+    "workflow.prefect": ServicePricing(unit_price_cents=1, service_id="workflow-prefect", service_name="Prefect Orchestration", monthly_price_cents=29900, unit="month")
         service_id="workflow-prefect",
         service_name="Prefect Orchestration",
         monthly_price_cents=19900,
@@ -137,13 +137,13 @@ SERVICE_PRICING = {
     ),
     
     # Streaming
-    "stream.kafka": ServicePricing(1,
+    "stream.kafka": ServicePricing(unit_price_cents=1, service_id="stream-kafka", service_name="Kafka Stream", monthly_price_cents=19900, unit="month")
         service_id="stream-kafka",
         service_name="Kafka Streaming",
         unit_price_cents=10,
         unit="1k_messages"
     ),
-    "stream.redpanda": ServicePricing(1,
+    "stream.redpanda": ServicePricing(unit_price_cents=1, service_id="stream-redpanda", service_name="Redpanda Stream", monthly_price_cents=19900, unit="month")
         service_id="stream-redpanda",
         service_name="Redpanda Streaming",
         unit_price_cents=8,
@@ -151,7 +151,7 @@ SERVICE_PRICING = {
     ),
     
     # LangFlow/Low-Code
-    "workflow.langflow": ServicePricing(1,
+    "workflow.langflow": ServicePricing(unit_price_cents=1, service_id="workflow-langflow", service_name="LangFlow", monthly_price_cents=0, unit="month")
         service_id="workflow-langflow",
         service_name="LangFlow",
         monthly_price_cents=19900,
