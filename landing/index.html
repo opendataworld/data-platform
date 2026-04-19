@@ -3,62 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Data World - AI-Powered Data Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>Open Data World - Data Platform</title>
     <style>
-        * { font-family: 'Inter', sans-serif; }
-        .hero-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); }
-        .glow { box-shadow: 0 0 60px rgba(99, 102, 241, 0.3); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #fff; min-height: 100vh; }
+        .hero { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 2rem; background: radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a0f 70%); }
+        h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { font-size: 1.25rem; color: #888; max-width: 600px; margin-bottom: 2rem; line-height: 1.6; }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; max-width: 900px; margin: 3rem 0; }
+        .feature { background: #111118; border: 1px solid #222; border-radius: 12px; padding: 1.5rem; }
+        .feature h3 { color: #667eea; margin-bottom: 0.5rem; }
+        .feature p { font-size: 0.9rem; color: #666; margin: 0; }
+        .links { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+        .links a { color: #fff; text-decoration: none; padding: 0.75rem 1.5rem; background: #1a1a2e; border-radius: 8px; border: 1px solid #333; transition: all 0.2s; }
+        .links a:hover { background: #667eea; border-color: #667eea; }
     </style>
 </head>
-<body class="hero-gradient min-h-screen text-white">
-    <nav class="fixed w-full z-50 border-b border-white/10 backdrop-blur-md">
-        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-            <span class="text-xl font-bold">Open Data World</span>
-            <div class="flex gap-6 text-sm">
-                <a href="#services" class="hover:text-indigo-400">Services</a>
-                <a href="http://vps.open-data.world:8000/chat" class="hover:text-indigo-400">Chat</a>
-                <a href="http://vps.open-data.world:7860" class="hover:text-indigo-400">LangFlow</a>
-            </div>
+<body>
+    <div class="hero">
+        <h1>Open Data World</h1>
+        <p>The complete data platform with SSO, crawling, labeling, knowledge bases, ML/NLP services, and low-code workflows.</p>
+        <div class="features">
+            <div class="feature"><h3>🔗 API</h3><p>api.open-data.world</p></div>
+            <div class="feature"><h3>📚 Docs</h3><p>docs.open-data.world</p></div>
+            <div class="feature"><h3>🔀 Flow</h3><p>flow.open-data.world</p></div>
+            <div class="feature"><h3>📊 Metadata</h3><p>metadata.open-data.world</p></div>
         </div>
-    </nav>
-
-    <section class="pt-40 pb-20 px-6 text-center">
-        <h1 class="text-5xl font-bold mb-6">
-            Build Intelligent<br>
-            <span class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Data Applications</span>
-        </h1>
-        <p class="text-xl text-slate-300 mb-10 max-w-xl mx-auto">
-            Open-source data platform with AI agent, LangFlow visual builder, and on-demand ML services.
-        </p>
-        <div class="flex gap-4 justify-center">
-            <a href="http://vps.open-data.world:8000/chat.html" class="px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700">Try AI Chat</a>
-            <a href="http://vps.open-data.world:7860" class="px-6 py-3 bg-white/10 rounded-lg hover:bg-white/20">LangFlow</a>
+        <div class="links">
+            <a href="https://api.open-data.world">API →</a>
+            <a href="https://docs.open-data.world">Documentation →</a>
+            <a href="https://flow.open-data.world">LangFlow →</a>
+            <a href="https://metadata.open-data.world">Metadata →</a>
         </div>
-    </section>
-
-    <section id="services" class="py-16 px-6">
-        <div class="max-w-4xl mx-auto">
-            <div class="grid grid-cols-4 gap-4">
-                <div class="bg-white/5 p-4 rounded-lg text-center">
-                    <div class="text-2xl mb-2">🐘</div>
-                    <div class="text-sm">PostgreSQL</div>
-                </div>
-                <div class="bg-white/5 p-4 rounded-lg text-center">
-                    <div class="text-2xl mb-2">🔴</div>
-                    <div class="text-sm">Redis</div>
-                </div>
-                <div class="bg-white/5 p-4 rounded-lg text-center">
-                    <div class="text-2xl mb-2">🦙</div>
-                    <div class="text-sm">Ollama</div>
-                </div>
-                <div class="bg-white/5 p-4 rounded-lg text-center">
-                    <div class="text-2xl mb-2">🧠</div>
-                    <div class="text-sm">SurrealDB</div>
-                </div>
-            </div>
-        </div>
-    </section>
+    </div>
 </body>
 </html>
