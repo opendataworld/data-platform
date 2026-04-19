@@ -1,14 +1,9 @@
 #!/bin/bash
-# Data Platform One-Line Deploy Script
-# Run on fresh Ubuntu: curl -sSL https://raw.githubusercontent.com/open-data-world/data-platform/main/deploy.sh | bash
-
 set -e
 
-# Configuration
 DOMAIN=${DOMAIN:-open-data.world}
 INSTALL_DIR="/opt/data-platform"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -22,7 +17,6 @@ echo "🚀 Data Platform Deployment (Core)"
 echo "=================================="
 echo ""
 
-# Check if running as root
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root: sudo bash deploy.sh"
     exit 1
@@ -38,13 +32,8 @@ if ! command -v docker &> /dev/null; then
     log_success "Docker installed"
 fi
 
-# Install Docker Compose if not present
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    log_info "Installing Docker Compose..."
-    curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-    log_success "Docker Compose installed"
-fi
+# Docker Compose v2 is usually included with docker
+log_info "Docker version: $(docker --version)"
 
 # Clone repository
 GITHUB_REPO="https://github.com/open-data-world/data-platform.git"
@@ -64,7 +53,7 @@ cp .env.coolify .env 2>/dev/null || true
 
 # Start core services only
 log_info "Starting core services (minimal)..."
-docker-compose -f docker-compose.core.yml up -d
+docker compose -f docker-compose.core.yml up -d
 
 # Wait for services
 log_info "Waiting for services..."
@@ -86,9 +75,9 @@ echo "💰 Billing:    https://billing.${DOMAIN}"
 echo "📚 Docs:       https://docs.${DOMAIN}"
 echo ""
 echo "📦 To deploy more services:"
-echo "   docker-compose -f docker-compose.yml --profile ml up -d"
-echo "   docker-compose -f docker-compose.yml --profile ingest up -d"
+echo "   docker compose -f docker-compose.yml --profile ml up -d"
+echo "   docker compose -f docker-compose.yml --profile ingest up -d"
 echo ""
 echo "======================================"
-echo "To stop: cd $INSTALL_DIR && docker-compose -f docker-compose.core.yml down"
+echo "To stop: cd $INSTALL_DIR && docker compose -f docker-compose.core.yml down"
 echo "======================================"
