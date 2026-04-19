@@ -325,3 +325,9 @@ async def check_lineage(asset: str, framework: str = "marquez"):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+@app.get("/chat", tags=["UI"])
+async def chat_ui():
+    """Serve chat UI."""
+    from fastapi.responses import FileResponse
+    return FileResponse("chat_ui.html")
