@@ -1,357 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<!-- Primary SEO -->
-<title>opendataworld — open-source data platform (catalog, ingest, semantic layer, knowledge graph)</title>
-<meta name="description" content="An open-source data platform built on OpenMetadata, Airbyte, Cube, Superset, SurrealDB, TerminusDB, and GraphDB. Catalog, ingest, resolve, model, and visualize — on your own infrastructure.">
-<meta name="keywords" content="open source data platform, OpenMetadata, Airbyte, Cube, Superset, data catalog, semantic layer, knowledge graph, entity resolution, Zingg, Unomi, SurrealDB, TerminusDB, GraphDB, data lineage, JSON-LD, schema.org">
-<meta name="author" content="opendataworld">
-<meta name="robots" content="index,follow,max-image-preview:large">
-<meta name="theme-color" content="#0b0c10">
-<link rel="canonical" href="https://site.open-data.world/">
-
-<!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="opendataworld">
-<meta property="og:title" content="opendataworld — open-source data platform">
-<meta property="og:description" content="Catalog, ingest, resolve, model, visualize — on open software, on your own infrastructure.">
-<meta property="og:url" content="https://site.open-data.world/">
-<meta property="og:image" content="https://site.open-data.world/og-image.png">
-<meta property="og:image:alt" content="opendataworld — open-source data platform">
-<meta property="og:locale" content="en_US">
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="opendataworld — open-source data platform">
-<meta name="twitter:description" content="Catalog, ingest, resolve, model, visualize — on open software, on your own infrastructure.">
-<meta name="twitter:image" content="https://site.open-data.world/og-image.png">
-
-<!-- JSON-LD structured data (schema.org) -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": "https://site.open-data.world/#org",
-      "name": "opendataworld",
-      "url": "https://site.open-data.world/",
-      "sameAs": ["https://github.com/opendataworld"]
-    },
-    {
-      "@type": "WebSite",
-      "@id": "https://site.open-data.world/#site",
-      "url": "https://site.open-data.world/",
-      "name": "opendataworld",
-      "description": "Open-source data platform — catalog, ingest, resolve, model, visualize.",
-      "publisher": { "@id": "https://site.open-data.world/#org" },
-      "inLanguage": "en"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "name": "opendataworld data platform",
-      "applicationCategory": "DataIntegrationApplication",
-      "operatingSystem": "Linux",
-      "url": "https://site.open-data.world/",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "description": "Assembled open-source data platform with OpenMetadata, Airbyte, Zingg, Cube, Superset, Unomi, SurrealDB, TerminusDB, and GraphDB."
-    }
-  ]
-}
-</script>
-
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0c10'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%234ade80'/%3E%3C/svg%3E">
-
-<style>
-  :root {
-    --bg: #0b0c10;
-    --fg: #e6e6e6;
-    --muted: #8a8f98;
-    --accent: #4ade80;
-    --card: #14161c;
-    --card-dim: #101217;
-    --border: #222;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
-  main { max-width: 920px; margin: 0 auto; padding: 4rem 1.5rem; }
-  header { margin-bottom: 3rem; }
-  .mark { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
-  h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0 0 1rem; line-height: 1.1; letter-spacing: -0.02em; }
-  .tagline { font-size: 1.2rem; color: var(--muted); max-width: 600px; margin: 0 0 2.5rem; }
-  .cta {
-    display: inline-flex; align-items: center; gap: 0.6rem;
-    background: var(--accent); color: #0b0c10; font-weight: 600;
-    padding: 0.9rem 1.6rem; border-radius: 8px; text-decoration: none;
-    font-size: 1.05rem; transition: transform 0.15s ease;
-  }
-  .cta:hover { transform: translateY(-1px); }
-  .cta-secondary {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    color: var(--muted); text-decoration: none; padding: 0.9rem 1rem; font-size: 0.95rem;
-  }
-  .cta-secondary:hover { color: var(--fg); }
-
-  h2 { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin: 3.5rem 0 1rem; font-weight: 600; }
-
-  .stack { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.9rem; }
-
-  .card {
-    background: var(--card);
-    padding: 1.25rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    position: relative;
-    transition: border-color 0.15s ease, transform 0.15s ease;
-  }
-  .card.live:hover { border-color: var(--accent); transform: translateY(-1px); }
-  .card.disabled {
-    background: var(--card-dim);
-    opacity: 0.55;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-  .card-head { display: flex; justify-content: space-between; align-items: center; }
-  .card h3 { margin: 0; font-size: 1rem; }
-  .badge {
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.5rem;
-    border-radius: 999px;
-    font-weight: 600;
-  }
-  .badge.live { background: rgba(74, 222, 128, 0.15); color: var(--accent); border: 1px solid rgba(74, 222, 128, 0.3); }
-  .badge.soon { background: rgba(138, 143, 152, 0.1); color: var(--muted); border: 1px solid var(--border); }
-  .card p { margin: 0; color: var(--muted); font-size: 0.88rem; }
-  .card .url { margin-top: 0.4rem; font-size: 0.78rem; color: #555; font-family: ui-monospace, "SF Mono", monospace; }
-
-  /* Share row in hero */
-  .share-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
-  .share-row .label { font-size: 0.8rem; color: var(--muted); margin-right: 0.25rem; }
-  .share-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--card);
-    color: var(--muted); text-decoration: none;
-    transition: color 0.15s ease, border-color 0.15s ease;
-    cursor: pointer;
-  }
-  .share-btn:hover { color: var(--fg); border-color: #444; }
-  .share-btn svg { width: 16px; height: 16px; }
-
-  /* Per-card share */
-  .card { padding-right: 2.5rem; }
-  .card-share {
-    position: absolute;
-    top: 0.75rem; right: 0.75rem;
-    width: 28px; height: 28px;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: var(--muted); background: transparent; border: none; border-radius: 5px;
-    cursor: pointer; opacity: 0.5;
-    transition: opacity 0.15s ease, background 0.15s ease;
-    z-index: 2;
-  }
-  .card-share:hover { opacity: 1; background: rgba(255,255,255,0.05); }
-  .card-share svg { width: 14px; height: 14px; }
-  .card.disabled .card-share { pointer-events: auto; }
-
-  .toast {
-    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-    background: var(--card); border: 1px solid var(--border);
-    color: var(--fg); padding: 0.6rem 1rem; border-radius: 6px; font-size: 0.9rem;
-    opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
-  }
-  .toast.show { opacity: 1; }
-
-  footer { margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
-  footer a { color: var(--muted); }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Data World - AI-Powered Data Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .hero-gradient { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); }
+        .glow { box-shadow: 0 0 60px rgba(99, 102, 241, 0.3); }
+    </style>
 </head>
-<body>
-<main>
-  <header>
-    <div class="mark">opendataworld</div>
-    <h1>An open-source data platform, assembled.</h1>
-    <p class="tagline">
-      Catalog, ingest, resolve, model, visualize — on open software, on your own infrastructure.
-    </p>
-    <a class="cta" href="https://metadata.open-data.world">Launch OpenMetadata →</a>
-    <a class="cta-secondary" href="https://github.com/opendataworld">GitHub ↗</a>
+<body class="hero-gradient min-h-screen text-white">
+    <nav class="fixed w-full z-50 border-b border-white/10 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <span class="text-xl font-bold">Open Data World</span>
+            <div class="flex gap-6 text-sm">
+                <a href="#services" class="hover:text-indigo-400">Services</a>
+                <a href="http://vps.open-data.world:8000/chat" class="hover:text-indigo-400">Chat</a>
+                <a href="http://vps.open-data.world:7860" class="hover:text-indigo-400">LangFlow</a>
+            </div>
+        </div>
+    </nav>
 
-    <div class="share-row" aria-label="Share opendataworld">
-      <span class="label">Share:</span>
-      <a class="share-btn" href="#" data-share="twitter" title="Share on X/Twitter" aria-label="Share on X/Twitter">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>
-      </a>
-      <a class="share-btn" href="#" data-share="linkedin" title="Share on LinkedIn" aria-label="Share on LinkedIn">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14Zm-11 6.5H5.5V19H8V9.5Zm-1.25-4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM19 19v-5.25c0-2.18-1.18-3.5-3-3.5-1.06 0-1.77.43-2.22 1.17h-.03V9.5H11V19h2.5v-4.5c0-1 .2-2 1.5-2s1.5 1 1.5 2V19H19Z"/></svg>
-      </a>
-      <a class="share-btn" href="#" data-share="facebook" title="Share on Facebook" aria-label="Share on Facebook">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 22v-8h2.7l.4-3H13V9c0-.9.3-1.5 1.5-1.5H16v-3c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.3-3.8 3.8V11H7v3h3v8h3Z"/></svg>
-      </a>
-      <a class="share-btn" href="mailto:?subject=opendataworld&body=Open-source data platform: https://site.open-data.world/" title="Share by email" aria-label="Share by email">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-      </a>
-      <button class="share-btn" data-share="copy" title="Copy link" aria-label="Copy link">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </button>
-    </div>
-  </header>
+    <section class="pt-40 pb-20 px-6 text-center">
+        <h1 class="text-5xl font-bold mb-6">
+            Build Intelligent<br>
+            <span class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Data Applications</span>
+        </h1>
+        <p class="text-xl text-slate-300 mb-10 max-w-xl mx-auto">
+            Open-source data platform with AI agent, LangFlow visual builder, and on-demand ML services.
+        </p>
+        <div class="flex gap-4 justify-center">
+            <a href="http://vps.open-data.world:8000/chat.html" class="px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700">Try AI Chat</a>
+            <a href="http://vps.open-data.world:7860" class="px-6 py-3 bg-white/10 rounded-lg hover:bg-white/20">LangFlow</a>
+        </div>
+    </section>
 
-  <h2>Services</h2>
-
-  <svg style="display:none" aria-hidden="true">
-    <symbol id="icon-share" viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-      </g>
-    </symbol>
-  </svg>
-
-  <section class="stack" id="services">
-
-    <a class="card live" href="https://metadata.open-data.world" data-name="OpenMetadata" data-url="https://metadata.open-data.world">
-      <button class="card-share" title="Share OpenMetadata" aria-label="Share OpenMetadata"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>OpenMetadata</h3><span class="badge live">Live</span></div>
-      <p>Discover, govern, and trace lineage across every data asset.</p>
-      <div class="url">metadata.open-data.world</div>
-    </a>
-
-    <div class="card disabled" aria-disabled="true" data-name="Airbyte" data-url="https://ingest.open-data.world">
-      <button class="card-share" title="Share Airbyte" aria-label="Share Airbyte"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>Airbyte</h3><span class="badge soon">Coming soon</span></div>
-      <p>350+ connectors for moving data from SaaS, DBs, and APIs into your warehouse.</p>
-      <div class="url">ingest.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="Zingg" data-url="https://resolve.open-data.world">
-      <button class="card-share" title="Share Zingg" aria-label="Share Zingg"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>Zingg</h3><span class="badge soon">Coming soon</span></div>
-      <p>ML-based entity resolution — one record per real-world thing.</p>
-      <div class="url">resolve.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="Cube" data-url="https://metrics.open-data.world">
-      <button class="card-share" title="Share Cube" aria-label="Share Cube"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>Cube</h3><span class="badge soon">Coming soon</span></div>
-      <p>Semantic layer — metric definitions reused across tools and APIs.</p>
-      <div class="url">metrics.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="Superset" data-url="https://viz.open-data.world">
-      <button class="card-share" title="Share Superset" aria-label="Share Superset"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>Superset</h3><span class="badge soon">Coming soon</span></div>
-      <p>Dashboards and SQL exploration for analysts and engineers.</p>
-      <div class="url">viz.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="Unomi" data-url="https://events.open-data.world">
-      <button class="card-share" title="Share Unomi" aria-label="Share Unomi"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>Unomi</h3><span class="badge soon">Coming soon</span></div>
-      <p>Customer data platform — event capture, profiles, segments.</p>
-      <div class="url">events.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="SurrealDB" data-url="https://data.open-data.world">
-      <button class="card-share" title="Share SurrealDB" aria-label="Share SurrealDB"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>SurrealDB</h3><span class="badge soon">Coming soon</span></div>
-      <p>Multi-model store — documents, vector search, live queries.</p>
-      <div class="url">data.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="TerminusDB" data-url="https://editor.open-data.world">
-      <button class="card-share" title="Share TerminusDB" aria-label="Share TerminusDB"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>TerminusDB</h3><span class="badge soon">Coming soon</span></div>
-      <p>Versioned knowledge graph — branch, diff, and review content models.</p>
-      <div class="url">editor.open-data.world</div>
-    </div>
-
-    <div class="card disabled" aria-disabled="true" data-name="GraphDB" data-url="https://kg.open-data.world">
-      <button class="card-share" title="Share GraphDB" aria-label="Share GraphDB"><svg><use href="#icon-share"/></svg></button>
-      <div class="card-head"><h3>GraphDB</h3><span class="badge soon">Coming soon</span></div>
-      <p>Standards-compliant RDF store — schema.org, SPARQL, linked data.</p>
-      <div class="url">kg.open-data.world</div>
-    </div>
-
-  </section>
-
-  <footer>
-    <div>© 2026 OpenAutonomyx. All rights reserved. Built on open software.</div>
-    <div style="margin-top:0.5rem">
-      <a href="https://trust.open-data.world">Trust</a>
-      &nbsp;·&nbsp;
-      <a href="https://github.com/opendataworld/data-platform">Source</a>
-      &nbsp;·&nbsp;
-      <a href="https://github.com/opendataworld">GitHub</a>
-    </div>
-  </footer>
-</main>
-
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-<script>
-  const toast = document.getElementById('toast');
-  const showToast = (msg) => {
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 1800);
-  };
-
-  const SITE_URL = 'https://site.open-data.world/';
-  const SITE_TITLE = 'opendataworld — open-source data platform';
-
-  function shareTo(target, url, title) {
-    const u = encodeURIComponent(url);
-    const t = encodeURIComponent(title);
-    let href = null;
-    if (target === 'twitter') href = 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u;
-    else if (target === 'linkedin') href = 'https://www.linkedin.com/sharing/share-offsite/?url=' + u;
-    else if (target === 'facebook') href = 'https://www.facebook.com/sharer/sharer.php?u=' + u;
-    if (href) window.open(href, '_blank', 'noopener,width=600,height=500');
-  }
-
-  document.querySelectorAll('.share-row [data-share]').forEach((el) => {
-    el.addEventListener('click', (e) => {
-      e.preventDefault();
-      const kind = el.dataset.share;
-      if (kind === 'copy') {
-        navigator.clipboard.writeText(SITE_URL).then(() => showToast('Link copied'));
-      } else {
-        shareTo(kind, SITE_URL, SITE_TITLE);
-      }
-    });
-  });
-
-  document.querySelectorAll('.card-share').forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const card = btn.closest('.card');
-      const name = card.dataset.name;
-      const url = card.dataset.url;
-      const title = name + ' — opendataworld';
-      if (navigator.share) {
-        try { await navigator.share({ title: title, url: url }); return; } catch (err) { /* fall through */ }
-      }
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('Copied ' + url);
-      } catch (err) {
-        showToast('Could not copy');
-      }
-    });
-  });
-</script>
+    <section id="services" class="py-16 px-6">
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-4 gap-4">
+                <div class="bg-white/5 p-4 rounded-lg text-center">
+                    <div class="text-2xl mb-2">🐘</div>
+                    <div class="text-sm">PostgreSQL</div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-lg text-center">
+                    <div class="text-2xl mb-2">🔴</div>
+                    <div class="text-sm">Redis</div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-lg text-center">
+                    <div class="text-2xl mb-2">🦙</div>
+                    <div class="text-sm">Ollama</div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-lg text-center">
+                    <div class="text-2xl mb-2">🧠</div>
+                    <div class="text-sm">SurrealDB</div>
+                </div>
+            </div>
+        </div>
+    </section>
 </body>
 </html>

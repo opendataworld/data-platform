@@ -1,9 +1,14 @@
-# opendataworld Caddyfile
-# Wildcard DNS *.open-data.world points to this VPS.
-# Caddy auto-issues Let's Encrypt certs once DNS resolves here.
+# Open Data World - Caddyfile
+# Wildcard DNS *.open-data.world points to this VPS
 
-site.open-data.world {
+www.open-data.world {
     root * /var/www/landing
+    file_server
+    encode zstd gzip
+}
+
+docs.open-data.world {
+    root * /var/www/docs
     file_server
     encode zstd gzip
 }
@@ -11,6 +16,16 @@ site.open-data.world {
 trust.open-data.world {
     root * /var/www/trust
     file_server
+    encode zstd gzip
+}
+
+api.open-data.world {
+    reverse_proxy localhost:8000
+    encode zstd gzip
+}
+
+flow.open-data.world {
+    reverse_proxy localhost:7860
     encode zstd gzip
 }
 
