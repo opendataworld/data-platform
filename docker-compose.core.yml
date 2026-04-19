@@ -1,57 +1,44 @@
-# Data Platform Core - Minimal Start
-
-name: opendataworld
-
 services:
-
-  # PostgreSQL
   postgres:
-    image: postgres:15-alpine
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    image: postgres:16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: ${POSTGRES_DB:-dataplatform}
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: platform
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # Redis
   redis:
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+      - "6379:6379"
     volumes:
       - redis_data:/data
 
-  # Orchestrator (Agent + MCP + Chat)
   orchestrator:
-    build:
-      context: ./orchestrator
-      dockerfile: Dockerfile
+    build: ./orchestrator
     ports:
-      - "${ORCHESTRATOR_PORT:-8000}:8000"
-    environment:
-      - POSTGRES_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-dataplatform}
-      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379
-      - LLM_MODEL=${LLM_MODEL:-llama3}
-      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+      - "8000:8000"
     depends_on:
       - postgres
       - redis
-    volumes:
-      - ./orchestrator:/app
+    environment:
+      - DATABASE_URL=postgresql://admin:changeme@postgres:5432/platform
+      - REDIS_URL=redis://redis:6379/0
 
-  # LangFlow
   langflow:
     image: langflowai/langflow:latest
     ports:
-      - "${LANGFLOW_PORT:-7860}:7860"
+      - "7860:7860"
+    volumes:
+      - ./orchestrator/langflow_components:/app/langflow_components
+      - langflow_data:/app/langflow
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/langflow
       - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme}
-      - LANGFLOW_LOAD_EXAMPLES=true
+      - LANGFLOW_LOAD_EXAMPLES=false
 
 volumes:
   postgres_data:
