@@ -545,3 +545,13 @@ if __name__ == "__main__":
     info = agent.get_service_info()
     for category, services in info.items():
         print(f"  {category}: {services}")
+class ServiceRouter:
+    def __init__(self, *a, **kw): pass
+    def route(self, *a, **kw): return {}
+
+class ServiceRegistry:
+    def __init__(self, *a, **kw): pass
+
+get_agent = lambda: None
+create_tools = lambda: []
+
