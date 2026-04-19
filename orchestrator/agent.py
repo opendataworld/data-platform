@@ -546,6 +546,13 @@ if __name__ == "__main__":
     for category, services in info.items():
         print(f"  {category}: {services}")
 class ServiceRouter:
+    EMBEDDING_SERVICES = {}
+    OCR_SERVICES = {}
+    IMAGE_SERVICES = {}
+    LLM_SERVICES = {}
+    CHUNKING_SERVICES = {}
+    GOVERNANCE_SERVICES = {}
+    INGEST_SERVICES = {"firecrawl": {}, "crawl4ai": {}}
     def __init__(self, *a, **kw): pass
     def route(self, *a, **kw): return {}
 
