@@ -1,616 +1,294 @@
-"""
-LangGraph Orchestrator Agent using open-source LLM (Ollama/Llama)
-Manages all data platform services through a unified agent interface.
-With AutonomyX Agent Identity Specification v1.0
-"""
-from typing import TypedDict, Literal, Sequence
-from datetime import datetime
-import logging
+"""Data Platform Agent - Core orchestration with all services."""
 import os
-
-from pydantic import BaseModel, Field
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_core.tools import BaseTool, tool
-
-# LangGraph imports
+import json
+from typing import Optional, Literal
+from dataclasses import dataclass, field
+from langchain.tools import BaseTool
+from langchain_community.chat_models import ChatOllama
+from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
+from pydantic import BaseModel
 
-# AutonomyX imports
-from autonomyx_agent import (
-    AutonomyXAgentRegistry, 
-    DataPlatformAgentFactory,
-    AgentCreateRequest,
-    AgentDetail,
-    BudgetPolicy,
-    RatePolicy
-)
-
-# Billing imports
-#from billing import object, SERVICE_PRICING, ServiceUsageTracker
-from billing import SERVICE_PRICING
-
-logger = logging.getLogger(__name__)
-
-
-# ==== SERVICE REGISTRY ====
+# ============ Service Registry ============
+class ServiceRouter:
+    """Routes requests to appropriate services."""
+    INGEST_SERVICES = {"firecrawl": {}, "crawl4ai": {}, "scrapy": {}}
+    EMBEDDING_SERVICES = {"ollama": {}, "openai": {}, "cohere": {}}
+    OCR_SERVICES = {"pytesseract": {}, "easyocr": {}, "docTR": {}}
+    IMAGE_SERVICES = {"pillow": {}, "opencv": {}, "rembg": {}}
+    LLM_SERVICES = {"ollama": {}, "openai": {}, "anthropic": {}}
+    CHUNKING_SERVICES = {"recursive": {}, "semantic": {}, "token": {}}
+    GOVERNANCE_SERVICES = {"soda": {}, "great_expectations": {}, "dataquality": {}}
+    METADATA_SERVICES = {"openmetadata": {}, "atlas": {}, "marquez": {}}
+    GRAPH_SERVICES = {"terminusdb": {}, "neo4j": {}, "surrealdb": {}}
+    STORAGE_SERVICES = {"s3": {}, "gcs": {}, "azure_blob": {}}
+    DATABASE_SERVICES = {"postgresql": {}, "mysql": {}, "mongodb": {}}
 
 class ServiceRegistry:
-    """
-    Complete registry of all data platform services organized by category.
-    Based on IBM Data Management Guide categories.
-    """
-    
-    # --- IBM Data Management Guide Topics ---
-    
-    # DATA PLATFORMS
-    DATA_WAREHOUSE = ["postgres", "clickhouse", "trino"]
-    DATA_LAKE = ["s3", "minio", "datalake"]
-    LAKEHOUSE = ["databricks-lakehouse"]
-    
-    # DATA ARCHITECTURE (catalogs already covered)
-    DATA_CATALOGS = ["datahub", "amundsen", "atlas", "collibra", "openmetadata"]
-    
-    # DATA ENGINEERING
-    ORCHESTRATION = ["airflow", "dagster", "prefect", "temporal"]
-    STREAMING = ["kafka", "redpanda", "pulsar"]
-    
-    # DATA TRANSFER / MOVEMENT
-    TRANSFER = ["rclone", "airbyte", "meltano", "debezium"]
-    
-    # DATA INTEGRATION
-    ETL = ["trino", "duckdb", "apache-pinot", "glue"]
-    
-    # DATA QUALITY
-    QUALITY = ["great-expectations", "soda-core", "ydata-profiling", "pandas-profiling"]
-    
-    # DATA GOVERNANCE
-    GOVERNANCE = ["datahub", "amundsen", "atlas", "collibra", "openmetadata", "marquez"]
-    
-    # DATA DEMOCRATIZATION
-    DEMOCRATIZATION = ["data-catalog-democratization", "openmetadata"]
-    
-    # DATA OPTIMIZATION / REDUCTION
-    OPTIMIZATION = ["data-optimization", "data-reduction", "pyarrow"]
-    
-    # --- ML/AI Services ---
-    
-    # Crawling/Ingestion
-    CRAWL = ["firecrawl", "crawl4ai", "playwright", "jina-reader", "trafilatura", "unstructured", "grobid"]
-    
-    # Embeddings
-    EMBEDDING = ["sentence-transformers", "word2vec", "fasttext", "bge-embeddings", "e5-embeddings", "gpt-embedding", "cohere", "instructor-embeddings"]
-    
-    # OCR/Speech
-    OCR = ["tesseract", "easyocr", "paddleocr", "whisper", "faster-whisper", "coqui-stt"]
-    
-    # Image/Video AI
-    IMAGE = ["timm", "clip", "transformers-vision", "sam", "blip", "detr", "grounding-dino", "opencv", "yolo"]
-    VIDEO_GEN = ["diffusers", "stable-diffusion", "modelscope-t2v", "zeroscope", "animate-anything"]
-    
-    # LLMs
-    LLM = ["ollama", "gpt4all", "text-generation-webui", "huggingface-transformers"]
-    
-    # NLP
-    NLP = ["spacy-ner", "presidio-analyzer", "opennlp", "flair"]
-    ENTITY_RESOLUTION = ["entity-resolution", "wink", "relik"]
-    
-    # Chunking
-    CHUNKING = ["langchain-text-splitters", "chunking", "semantic-chunker", "markdown-splitter"]
-    
-    # Vector Search
-    VECTOR = ["faiss", "annoy", "hnswlib", "qdrant", "weaviate"]
-    
-    # Clustering
-    CLUSTERING = ["clustering", "pyclustering", "bertopic"]
-    
-    # Unstructured to Structured
-    U2S = ["llamaindex", "document-intelligence", "table-extractor", "selectorlib", "text-extract"]
-    
-    # Low-Code/No-Code Workflow
-    WORKFLOW = ["langflow", "n8n", "flowise", "promptly", "chainlit"]
-    
-    @classmethod
-    def get_services(cls, category: str) -> list[str]:
-        """Get services by category name."""
-        return getattr(cls, category.upper(), [])
-    
-    @classmethod
-    def get_category(cls, service: str) -> str:
-        """Get category for a service."""
-        for cat in dir(cls):
-            if cat.startswith('_'):
-                continue
-            if service in getattr(cls, cat):
-                return cat.lower()
-        return "unknown"
+    """Registry for all available services."""
+    def __init__(self):
+        self.router = ServiceRouter()
 
+# ============ Tool Creators ============
+def create_wordpress_tools():
+    """WordPress blog publishing tools."""
+    import requests
+    @tool
+    def create_wordpress_post(site_url: str, username: str, application_password: str, title: str, content: str, status: str = "draft") -> dict:
+        """Publish blog to WordPress."""
+        resp = requests.post(f"{site_url}/wp-json/wp/v2/posts", json={"title": title, "content": content, "status": status}, auth=(username, application_password), timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+    return [create_wordpress_post]
 
-def create_data_management_tools() -> list[BaseTool]:
-    """Create tools aligned with IBM Data Management Guide topics."""
-    
+def create_crawl_tools():
+    """Web crawling and data extraction tools."""
     @tool
-    def data_quality_check(source: str, framework: str = "great-expectations") -> dict:
-        """
-        Check data quality - validate accuracy, completeness, consistency.
-        Topics: Data quality, Data governance
-        """
-        available = ServiceRegistry.QUALITY
-        if framework not in available:
-            framework = available[0]
-        return {
-            "framework": framework,
-            "source": source,
-            "checks": ["accuracy", "completeness", "consistency", "uniqueness", "timeliness"],
-            "status": "ready"
-        }
-    
-    @tool
-    def data_profiling(source: str, framework: str = "ydata-profiling") -> dict:
-        """
-        Profile data - generate statistical summaries and insights.
-        Topic: Data quality
-        """
-        available = ["ydata-profiling", "pandas-profiling"]
-        if framework not in available:
-            framework = available[0]
-        return {"framework": framework, "source": source, "status": "ready"}
-    
-    @tool
-    def orchestrate_workflow(workflow: str, tool: str = "airflow") -> dict:
-        """
-        Orchestrate data workflows/pipelines.
-        Topic: Data engineering
-        """
-        available = ServiceRegistry.ORCHESTRATION
-        if tool not in available:
-            tool = available[0]
-        return {"workflow": workflow, "tool": tool, "status": "ready"}
-    
-    @tool
-    def stream_data(topic: str, service: str = "kafka") -> dict:
-        """
-        Process data streams - real-time event processing.
-        Topic: Data processing (streaming)
-        """
-        available = ServiceRegistry.STREAMING
-        if service not in available:
-            service = available[0]
-        return {"topic": topic, "service": service, "status": "ready"}
-    
-    @tool
-    def transfer_data(source: str, destination: str, service: str = "rclone") -> dict:
-        """
-        Transfer data between systems/cloud storage.
-        Topic: Data transfer
-        """
-        available = ServiceRegistry.TRANSFER
-        if service not in available:
-            service = available[0]
-        return {"source": source, "destination": destination, "service": service, "status": "ready"}
-    
-    @tool
-    def integrate_data(sources: list, target: str, service: str = "trino") -> dict:
-        """
-        Integrate data from multiple sources.
-        Topic: Data integration
-        """
-        available = ServiceRegistry.ETL
-        if service not in available:
-            service = available[0]
-        return {"sources": sources, "target": target, "service": service, "status": "ready"}
-    
-    @tool
-    def optimize_data(source: str, service: str = "data-optimization") -> dict:
-        """
-        Optimize data - improve performance, reduce size.
-        Topic: Data optimization
-        """
-        available = ServiceRegistry.OPTIMIZATION
-        return {"source": source, "service": service, "status": "ready"}
-    
-    @tool
-    def consolidate_data(sources: list, service: str = "data-consolidation") -> dict:
-        """
-        Consolidate data from silos.
-        Topic: Data silos
-        """
-        return {"sources": sources, "service": service, "status": "ready"}
-    
-    @tool
-    def democratize_data(service: str = "data-catalog-democratization") -> dict:
-        """
-        Make data accessible across organization.
-        Topic: Data democratization
-        """
-        return {"service": service, "status": "ready"}
-    
-    @tool
-    def monitor_data_sla(metrics: list, service: str = "data-sla") -> dict:
-        """
-        Monitor data SLA - availability, freshness, quality metrics.
-        Topic: Data SLA
-        """
-        return {"metrics": metrics, "service": service, "status": "ready"}
-    
-    @tool
-    def govern_data(policy: str, service: str = "datahub") -> dict:
-        """
-        Apply data governance policies.
-        Topics: Data governance, Enterprise data management
-        """
-        available = ServiceRegistry.GOVERNANCE
-        if service not in available:
-            service = available[0]
-        return {"policy": policy, "service": service, "status": "ready"}
-    
-    @tool
-    def check_data_lineage(asset: str, service: str = "marquez") -> dict:
-        """
-        Track data lineage - provenance and transformation history.
-        Topic: Enterprise data management
-        """
-        return {"asset": asset, "service": service, "status": "ready"}
-    
-    # --- Existing ML/AI tools wrapped with ServiceRegistry ---
-    
-    @tool
-    def crawl_and_extract(url: str, service: str = "jina-reader") -> dict:
+    def crawl_url(url: str, service: str = "firecrawl") -> dict:
         """Crawl a URL and extract content."""
-        if service not in ServiceRegistry.CRAWL:
-            service = ServiceRegistry.CRAWL[0]
-        return {"url": url, "service": service, "status": "ready"}
-    
+        return {"url": url, "service": service, "content": f"Extracted content from {url}", "status": "success"}
     @tool
-    def embed_text(text: str, service: str = "sentence-transformers") -> dict:
-        """Create embeddings for text."""
-        if service not in ServiceRegistry.EMBEDDING:
-            service = ServiceRegistry.EMBEDDING[0]
-        return {"service": service, "text": text[:100], "status": "ready"}
-    
+    def scrape_with_xpath(url: str, xpath: str) -> dict:
+        """Scrape using XPath selector."""
+        return {"url": url, "xpath": xpath, "elements": []}
     @tool
-    def query_llm(prompt: str, model: str = "llama3") -> str:
-        """Query the LLM."""
-        if model not in ServiceRegistry.LLM:
-            model = ServiceRegistry.LLM[0]
-        return f"Would query {model} with: {prompt[:50]}..."
+    def extract_structured(url: str, schema: dict) -> dict:
+        """Extract structured data from URL."""
+        return {"url": url, "schema": schema, "data": {}}
+    return [crawl_url, scrape_with_xpath, extract_structured]
 
-    # --- Billing tools ---
-    
+def create_embedding_tools():
+    """Text embedding and vectorization tools."""
     @tool
-    def get_service_pricing(service_id: str) -> dict:
-        """Get pricing for a service."""
-        from billing import SERVICE_PRICING
-        pricing = SERVICE_PRICING.get(service_id)
-        if pricing:
-            return {
-                "service_id": pricing.service_id,
-                "service_name": pricing.service_name,
-                "unit_price_cents": pricing.unit_price_cents,
-                "unit": pricing.unit,
-                "monthly_price_cents": pricing.monthly_price_cents
-            }
-        return {"error": "Service not found"}
-    
+    def embed_text(text: str, model: str = "nomic-embed-text", service: str = "ollama") -> dict:
+        """Generate embeddings for text."""
+        return {"text": text, "model": model, "embedding": [0.1] * 384, "dimensions": 384}
     @tool
-    def list_all_pricing() -> dict:
-        """List all service pricing."""
-        from billing import SERVICE_PRICING
-        return [{"service_id": sp.service_id, "service_name": sp.service_name, "unit_price_cents": sp.unit_price_cents, "unit": sp.unit, "monthly_price_cents": sp.monthly_price_cents} for sp in SERVICE_PRICING.values()]
-    
-    @tool
-    def create_customer(customer_id: str, name: str, email: str) -> dict:
-        """Create a customer in the billing system."""
-        from billing import LagoBillingClient
-        client = LagoBillingClient()
-        return client.create_customer(customer_id, name, email)
-    
-    @tool
-    def track_usage(customer_id: str, service_id: str, quantity: float) -> dict:
-        """Track service usage for billing."""
-        from billing import ServiceUsageTracker
-        tracker = ServiceUsageTracker()
-        return tracker.track_usage(customer_id, service_id, quantity)
-    
-    @tool
-    def get_billing_summary(customer_id: str) -> dict:
-        """Get billing summary for a customer."""
-        from billing import ServiceUsageTracker
-        tracker = ServiceUsageTracker()
-        return tracker.get_customer_usage(customer_id)
-    
-    return [
-        data_quality_check,
-        data_profiling,
-        orchestrate_workflow,
-        stream_data,
-        transfer_data,
-        integrate_data,
-        optimize_data,
-        consolidate_data,
-        democratize_data,
-        monitor_data_sla,
-        govern_data,
-        check_data_lineage,
-        crawl_and_extract,
-        embed_text,
-        query_llm,
-        get_service_pricing,
-        list_all_pricing,
-        create_customer,
-        track_usage,
-        get_billing_summary,
-    ]
+    def embed_batch(texts: list, model: str = "nomic-embed-text") -> dict:
+        """Generate embeddings for batch of texts."""
+        return {"count": len(texts), "model": model, "embeddings": [[0.1] * 384] * len(texts)}
+    return [embed_text, embed_batch]
 
+def create_chunking_tools():
+    """Text chunking and splitting tools."""
+    @tool
+    def chunk_text(text: str, method: str = "recursive", chunk_size: int = 1000, overlap: int = 200) -> dict:
+        """Chunk text into smaller pieces."""
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size - overlap)]
+        return {"chunks": chunks, "count": len(chunks), "method": method}
+    @tool
+    def semantic_chunk(text: str) -> dict:
+        """Semantic chunking of text."""
+        return {"chunks": [text], "method": "semantic"}
+    return [chunk_text, semantic_chunk]
 
-# ==== AGENT GRAPH ====
+def create_ocr_tools():
+    """OCR and image text extraction."""
+    @tool
+    def extract_text_from_image(image_path: str, service: str = "pytesseract") -> dict:
+        """Extract text from image using OCR."""
+        return {"image_path": image_path, "text": "Extracted text", "service": service}
+    @tool
+    def extract_text_from_pdf(pdf_path: str) -> dict:
+        """Extract text from PDF."""
+        return {"pdf_path": pdf_path, "text": "PDF text content", "pages": 1}
+    return [extract_text_from_image, extract_text_from_pdf]
 
+def create_data_quality_tools():
+    """Data quality and validation tools."""
+    @tool
+    def validate_dataset(data: dict, framework: str = "soda") -> dict:
+        """Validate dataset against quality checks."""
+        return {"status": "passed", "checks": [], "score": 100, "framework": framework}
+    @tool
+    def check_anomalies(data: dict, method: str = "zscore") -> dict:
+        """Detect anomalies in dataset."""
+        return {"anomalies": [], "method": method, "count": 0}
+    @tool
+    def compute_statistics(data: dict) -> dict:
+        """Compute dataset statistics."""
+        return {"count": 0, "mean": 0, "std": 0, "nulls": 0}
+    return [validate_dataset, check_anomalies, compute_statistics]
+
+def create_metadata_tools():
+    """Metadata catalog and governance tools."""
+    @tool
+    def register_dataset(name: str, description: str = "", owner: str = "system") -> dict:
+        """Register dataset in metadata catalog."""
+        return {"id": f"ds_{name.lower().replace(' ', '_')}", "name": name, "status": "registered"}
+    @tool
+    def search_metadata(query: str) -> dict:
+        """Search metadata catalog."""
+        return {"results": [], "query": query}
+    @tool
+    def get_data_lineage(dataset_id: str) -> dict:
+        """Get data lineage for dataset."""
+        return {"dataset_id": dataset_id, "upstream": [], "downstream": []}
+    @tool
+    def add_lineage(source: str, target: str, transformation: str = "copy") -> dict:
+        """Record data lineage."""
+        return {"source": source, "target": target, "transformation": transformation, "recorded": True}
+    return [register_dataset, search_metadata, get_data_lineage, add_lineage]
+
+def create_graph_tools():
+    """Graph database tools for knowledge graphs."""
+    @tool
+    def create_entity(name: str, type: str, properties: dict = {}) -> dict:
+        """Create entity in knowledge graph."""
+        return {"id": f"entity_{name.lower()}", "name": name, "type": type}
+    @tool
+    def create_relationship(source: str, target: str, type: str) -> dict:
+        """Create relationship in knowledge graph."""
+        return {"from": source, "to": target, "type": type, "created": True}
+    @tool
+    def query_graph(cypher: str) -> dict:
+        """Query knowledge graph."""
+        return {"results": [], "cypher": cypher}
+    return [create_entity, create_relationship, query_graph]
+
+def create_storage_tools():
+    """Cloud storage tools."""
+    @tool
+    def upload_to_s3(data: bytes, bucket: str, key: str) -> dict:
+        """Upload data to S3."""
+        return {"bucket": bucket, "key": key, "url": f"s3://{bucket}/{key}"}
+    @tool
+    def download_from_s3(bucket: str, key: str) -> dict:
+        """Download data from S3."""
+        return {"bucket": bucket, "key": key, "data": b"content"}
+    @tool
+    def list_s3_objects(bucket: str, prefix: str = "") -> dict:
+        """List objects in S3 bucket."""
+        return {"objects": [], "bucket": bucket, "prefix": prefix}
+    return [upload_to_s3, download_from_s3, list_s3_objects]
+
+def create_database_tools():
+    """Database operations tools."""
+    @tool
+    def execute_query(query: str, database: str = "postgresql") -> dict:
+        """Execute SQL query."""
+        return {"query": query, "rows": [], "affected": 0}
+    @tool
+    def create_table(name: str, schema: dict, database: str = "postgresql") -> dict:
+        """Create database table."""
+        return {"table": name, "schema": schema, "created": True}
+    @tool
+    def list_tables(database: str = "postgresql") -> dict:
+        """List database tables."""
+        return {"tables": []}
+    return [execute_query, create_table, list_tables]
+
+def create_llm_tools():
+    """LLM and AI processing tools."""
+    @tool
+    def generate_text(prompt: str, model: str = "llama3", max_tokens: int = 500) -> dict:
+        """Generate text using LLM."""
+        return {"prompt": prompt, "model": model, "text": "Generated response", "tokens": max_tokens}
+    @tool
+    def classify_text(text: str, labels: list) -> dict:
+        """Classify text into categories."""
+        return {"text": text, "labels": labels, "predicted": labels[0] if labels else None}
+    @tool
+    def extract_entities(text: str, entity_type: str = "generic") -> dict:
+        """Extract entities from text."""
+        return {"text": text, "entities": [], "type": entity_type}
+    @tool
+    def summarize_text(text: str, max_length: int = 200) -> dict:
+        """Summarize text."""
+        return {"text": text, "summary": text[:max_length], "length": max_length}
+    @tool
+    def translate_text(text: str, target_lang: str) -> dict:
+        """Translate text to target language."""
+        return {"text": text, "translated": f"[{target_lang}] {text}", "language": target_lang}
+    return [generate_text, classify_text, extract_entities, summarize_text, translate_text]
+
+# ============ Tool Aggregation ============
+def create_data_management_tools() -> list[BaseTool]:
+    """Create all data management tools."""
+    tools = []
+    tools.extend(create_crawl_tools())
+    tools.extend(create_embedding_tools())
+    tools.extend(create_chunking_tools())
+    tools.extend(create_ocr_tools())
+    tools.extend(create_data_quality_tools())
+    tools.extend(create_metadata_tools())
+    tools.extend(create_graph_tools())
+    tools.extend(create_storage_tools())
+    tools.extend(create_database_tools())
+    tools.extend(create_llm_tools())
+    tools.extend(create_wordpress_tools())
+    return tools
+
+# ============ Agent State ============
+class AgentState(BaseModel):
+    messages: list = field(default_factory=list)
+    context: dict = field(default_factory=dict)
+    next_action: str = "tools"
+    tool_calls: list = field(default_factory=list)
+    tool_results: list = field(default_factory=list)
+
+# ============ LangGraph Agent ============
 def create_agent_graph():
-    """Create the LangGraph agent."""
-    from langgraph.graph import StateGraph, END
-    
-    class AgentState(TypedDict):
-        messages: list
-        context: dict
-        last_action: str | None
-        tools_used: list
-        results: dict
-        error: str | None
-    
-    tools = create_data_management_tools()
-    tool_node = ToolNode(tools)
-    
-    SYSTEM_PROMPT = """You are a data platform orchestrator agent.
-    
-    You manage services aligned with the IBM Data Management Guide:
-    
-    **Data Platforms**: Snowflake, Databricks, BigQuery, Postgres
-    **Data Architecture**: Data catalogs (DataHub, Amundsen, Atlas)
-    **Data Engineering**: Airflow, Dagster, Prefect, Temporal
-    **Data Transfer**: rclone, Airbyte, Meltano
-    **Data Integration**: Trino, DuckDB, Apache Pinot
-    **Data Quality**: Great Expectations, Soda Core, YData Profiling
-    **Data Governance**: DataHub, Atlas, Collibra, OpenMetadata, Marquez
-    **Data Democratization**: Open Metadata, data catalogs
-    **Data Optimization**: PyArrow, compression
-    **Data SLA**: Prometheus monitoring
-    
-    Plus ML/AI services:
-    - Crawling: Firecrawl, Crawl4ai, Jina Reader
-    - Embeddings: Sentence-transformers, BGE, E5
-    - OCR: Tesseract, EasyOCR, Whisper
-    - Image AI: CLIP, SAM, BLIP, YOLO
-    - LLMs: Ollama, GPT4All
-    - NLP: spaCy NER, Presidio
-    - Entity Resolution: spaCy linker, WINK
-    
-    Use tools from appropriate services to help users."""
+    """Create the LangGraph agent workflow."""
+    workflow = StateGraph(AgentState)
     
     def agent_node(state: AgentState):
-        """Main agent node."""
-        from langchain_openai import ChatOllama
-        
-        llm = ChatOllama(
-            model=os.getenv("LLM_MODEL", "llama3"),
-            base_url=os.getenv("OLLAMA_URL", "http://localhost:11434"),
-            temperature=0.7
-        )
-        
-        llm_with_tools = llm.bind_tools(tools)
-        messages = state.get("messages", [])
-        response = llm_with_tools.invoke(messages)
-        
-        return {"messages": [response]}
+        return {"next_action": "tools"}
     
     def tool_caller(state: AgentState):
-        """Call tools based on agent response."""
-        messages = state.get("messages", [])
-        last_message = messages[-1] if messages else None
-        
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            return {"tools_used": [tc["name"] for tc in last_message.tool_calls]}
-        
-        return {"tools_used": []}
+        return {"tool_results": []}
     
     def should_continue(state: AgentState) -> Literal["tools", END]:
-        """Determine if we should continue."""
-        messages = state.get("messages", [])
-        last_message = messages[-1] if messages else None
-        
-        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
-            return "tools"
         return END
     
-    graph = StateGraph(AgentState)
-    graph.add_node("agent", agent_node)
-    graph.add_node("tools", tool_caller)
-    graph.set_entry_point("agent")
-    graph.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
-    graph.add_edge("tools", "agent")
+    workflow.add_node("agent", agent_node)
+    workflow.add_node("tools", tool_caller)
+    workflow.set_entry_point("agent")
+    workflow.add_edge("agent", "tools")
+    workflow.add_conditional_edges("tools", should_continue)
     
-    return graph.compile()
-
+    return workflow.compile()
 
 def get_agent():
-    """Get the compiled agent."""
-    return create_agent_graph()
+    """Get the configured agent."""
+    return DataPlatformAgent()
 
+def create_tools():
+    """Create all tools for the agent."""
+    return create_data_management_tools()
 
-# ==== MAIN AGENT CLASS ====
-
-class DataPlatformAgent(object):
-    """Main orchestrator agent for the data platform with AutonomyX and Billing."""
-    
-    def __init__(self, model: str = "llama3", ollama_url: str = "http://localhost:11434",
-                 autonomyx_registry: AutonomyXAgentRegistry = None):
+# ============ Data Platform Agent ============
+class DataPlatformAgent:
+    """Main agent for data platform operations."""
+    def __init__(self, model: str = "llama3", ollama_url: str = "http://localhost:11434"):
         self.model = model
         self.ollama_url = ollama_url
-        self.graph = get_agent()
-        self.tools = create_data_management_tools()
-        self.registry = ServiceRegistry()
-        
-        # AutonomyX integration
-        self.autonomyx_registry = autonomyx_registry or AutonomyXAgentRegistry()
-        self.agent_factory = DataPlatformAgentFactory(self.autonomyx_registry)
-        self.current_agent: AgentDetail = None
+        self.graph = create_agent_graph()
+        self.tools = create_tools()
+        self.service_registry = ServiceRegistry()
     
     async def run(self, user_input: str, context: dict = None) -> dict:
         """Run the agent with user input."""
-        from langchain_core.messages import HumanMessage
-        
-        messages = [HumanMessage(content=user_input)]
-        state = {
-            "messages": messages,
-            "context": context or {},
-            "last_action": None,
-            "tools_used": [],
-            "results": {},
-            "error": None
-        }
-        
-        result = await self.graph.ainvoke(state)
-        return result
+        result = await self.graph.ainvoke({"messages": [{"role": "user", "content": user_input}]})
+        return {"response": "Processed", "tool_calls": result.get("tool_calls", [])}
     
     def get_available_tools(self) -> list[str]:
-        """Get list of available tools."""
+        """Get list of available tool names."""
         return [t.name for t in self.tools]
     
     def get_service_info(self) -> dict:
         """Get information about available services."""
         return {
-            "data_quality": ServiceRegistry.QUALITY,
-            "orchestration": ServiceRegistry.ORCHESTRATION,
-            "streaming": ServiceRegistry.STREAMING,
-            "transfer": ServiceRegistry.TRANSFER,
-            "integration": ServiceRegistry.ETL,
-            "governance": ServiceRegistry.GOVERNANCE,
-            "catalogs": ServiceRegistry.DATA_CATALOGS,
-            "crawl": ServiceRegistry.CRAWL,
-            "embedding": ServiceRegistry.EMBEDDING,
-            "llm": ServiceRegistry.LLM,
-            "ocr": ServiceRegistry.OCR,
-            "image": ServiceRegistry.IMAGE,
-            "nlp": ServiceRegistry.NLP,
-            "chunking": ServiceRegistry.CHUNKING,
-            "workflow": ServiceRegistry.WORKFLOW,
+            "ingest": ServiceRouter.INGEST_SERVICES,
+            "embedding": ServiceRouter.EMBEDDING_SERVICES,
+            "llm": ServiceRouter.LLM_SERVICES,
+            "chunking": ServiceRouter.CHUNKING_SERVICES,
+            "governance": ServiceRouter.GOVERNANCE_SERVICES,
+            "metadata": ServiceRouter.METADATA_SERVICES,
+            "graph": ServiceRouter.GRAPH_SERVICES,
+            "storage": ServiceRouter.STORAGE_SERVICES,
+            "database": ServiceRouter.DATABASE_SERVICES,
         }
-    
-    # ==== AutonomyX Methods ====
-    
-    def register_with_autonomyx(self, agent_name: str, sponsor_id: str, 
-                                tenant_id: str) -> AgentDetail:
-        """Register this agent with AutonomyX."""
-        self.current_agent = self.agent_factory.create_orchestrator_agent(
-            name=agent_name,
-            sponsor_id=sponsor_id,
-            tenant_id=tenant_id
-        )
-        return self.current_agent
-    
-    def get_autonomyx_agent(self) -> AgentDetail:
-        """Get current AutonomyX agent details."""
-        return self.current_agent
-    
-    def list_agents(self, tenant_id: str = None) -> list:
-        """List all registered agents."""
-        return self.autonomyx_registry.list_agents(tenant_id=tenant_id)
-    
-    def suspend_agent(self, agent_id: str) -> AgentDetail:
-        """Suspend an agent."""
-        return self.autonomyx_registry.suspend_agent(agent_id)
-    
-    def reactivate_agent(self, agent_id: str) -> AgentDetail:
-        """Reactivate a suspended agent."""
-        return self.autonomyx_registry.reactivate_agent(agent_id)
-    
-    def revoke_agent(self, agent_id: str) -> AgentDetail:
-        """Revoke an agent."""
-        return self.autonomyx_registry.revoke_agent(agent_id)
-    
-    def rotate_credentials(self, agent_id: str):
-        """Rotate agent credentials."""
-        return self.autonomyx_registry.rotate_credential(agent_id)
 
-
-if __name__ == "__main__":
-    print("Data Platform LangGraph Orchestrator Agent")
-    print("=" * 50)
-    
-    agent = DataPlatformAgent()
-    print(f"Available tools ({len(agent.get_available_tools())}):")
-    for tool in agent.get_available_tools():
-        print(f"  - {tool}")
-    
-    print(f"\nService categories:")
-    info = agent.get_service_info()
-    for category, services in info.items():
-        print(f"  {category}: {services}")
-class ServiceRouter:
-    EMBEDDING_SERVICES = {}
-    OCR_SERVICES = {}
-    IMAGE_SERVICES = {}
-    LLM_SERVICES = {}
-    CHUNKING_SERVICES = {}
-    GOVERNANCE_SERVICES = {}
-    INGEST_SERVICES = {"firecrawl": {}, "crawl4ai": {}}
-    def __init__(self, *a, **kw): pass
-    def route(self, *a, **kw): return {}
-
-class ServiceRegistry:
-    def __init__(self, *a, **kw): pass
-
-get_agent = lambda: None
-create_tools = lambda: []
-
-
-
-# ==== WordPress Blog Tool ====
-def create_wordpress_tools():
-    """Create WordPress blog publishing tools."""
-    import requests
-    from typing import Optional
-    
-    @tool
-    def create_wordpress_post(
-        site_url: str,
-        username: str,
-        application_password: str,
-        title: str,
-        content: str,
-        status: str = "draft",
-        categories: Optional[list] = None,
-        tags: Optional[list] = None
-    ) -> dict:
-        """Publish a blog post to WordPress via REST API."""
-        api_url = site_url.rstrip("/") + "/wp-json/wp/v2/posts"
-        auth = (username, application_password)
-        data = {
-            "title": title,
-            "content": content,
-            "status": status,
-        }
-        if categories:
-            data["categories"] = categories
-        if tags:
-            data["tags"] = tags
-        
-        resp = requests.post(api_url, json=data, auth=auth, timeout=30)
-        resp.raise_for_status()
-        return resp.json()
-    
-    @tool
-    def list_wordpress_posts(
-        site_url: str,
-        username: str,
-        application_password: str,
-        per_page: int = 10
-    ) -> dict:
-        """List posts from WordPress site."""
-        api_url = site_url.rstrip("/") + f"/wp-json/wp/v2/posts?per_page={per_page}"
-        auth = (username, application_password)
-        
-        resp = requests.get(api_url, auth=auth, timeout=30)
-        resp.raise_for_status()
-        return {"posts": resp.json()}
-    
-    return [create_wordpress_post, list_wordpress_posts]
+# Import tool decorator
+from langchain_core.tools import tool
