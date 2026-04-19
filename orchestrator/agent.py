@@ -27,7 +27,7 @@ from autonomyx_agent import (
 )
 
 # Billing imports
-#from billing import #BillingAwareAgentMixin, SERVICE_PRICING, ServiceUsageTracker
+#from billing import # object , SERVICE_PRICING, ServiceUsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -437,7 +437,7 @@ def get_agent():
 
 # ==== MAIN AGENT CLASS ====
 
-class DataPlatformAgent(BillingAwareAgentMixin):
+#class DataPlatformAgent( object ):
     """Main orchestrator agent for the data platform with AutonomyX and Billing."""
     
     def __init__(self, model: str = "llama3", ollama_url: str = "http://localhost:11434",
