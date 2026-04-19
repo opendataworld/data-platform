@@ -1,0 +1,52 @@
+name: Deploy Data Platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io docker-compose
+      
+      - name: Configure environment
+        run: |
+          cp .env.coolify .env
+          echo "DOMAIN=${{ secrets.DOMAIN || 'open-data.world' }}" >> .env
+      
+      - name: Deploy Core Services
+        run: |
+          docker-compose -f docker-compose.core.yml up -d --build
+      
+      - name: Wait for services
+        run: sleep 30
+      
+      - name: Health Check
+        run: |
+          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost:7860/health || exit 1
+  
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Lint Docker files
+        run: |
+          docker-compose -f docker-compose.core.yml config --quiet
+          docker-compose -f docker-compose.yml config --quiet
+      
+      - name: Check required files
+        run: |
+          ls -la deploy.sh
+          ls -la docker-compose.core.yml
+          ls -la orchestrator/
