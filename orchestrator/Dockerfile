@@ -16,10 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN curl -fsSL https://ollama.ai/install.sh | sh
 
 # Copy application code
-COPY agent.py .
-COPY tools.py .
-COPY state.py .
-COPY graph.py .
+COPY *.py .
+COPY chat_ui.html .
+COPY langflow_components/ ./langflow_components/
+COPY skills/ ./skills/
 
 # Create data directories
 RUN mkdir -p /data/models /data/logs
