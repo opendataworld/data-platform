@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install system deps
 RUN apt-get update && apt-get install -y \
-    git curl \
+    git curl zstd \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps
