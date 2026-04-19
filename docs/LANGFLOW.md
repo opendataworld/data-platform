@@ -1,81 +1,59 @@
-# LangFlow Integration Guide
+# LangFlow + Orchestrator (Production Setup)
 
-## Custom Components Available
+This repository is set up so LangFlow can call platform tools through the Orchestrator API, and the orchestrator can deploy services on demand using Docker Compose profiles.
 
-The Data Platform includes custom LangFlow components that connect to all platform services.
+## Architecture
 
-### Components Installed
-
-| Component | Description |
-|-----------|-------------|
-| Crawl URL | Web crawling with Jina Reader, Firecrawl |
-| Embed Text | Sentence Transformers, BGE, E5 embeddings |
-| Chunk Text | Text chunking (recursive, semantic) |
-| OCR Image | Tesseract, EasyOCR image to text |
-| Transcribe Audio | Whisper, Faster-Whisper speech to text |
-| Query LLM | Ollama, GPT4All LLM queries |
-| Data Quality | Great Expectations validation |
-| Extract Entities | spaCy NER entity extraction |
-| Detect PII | Presidio PII detection |
-| Workflow Trigger | Airflow, Prefect workflow triggers |
-| Service Registry | Browse available services |
-
-## Using Components in LangFlow
-
-### 1. Access LangFlow
-```
-https://flow.open-data.world
+```text
+LangFlow Agent
+  -> Orchestrator API (/agent, /tools, /services)
+    -> Tool layer (crawl/embed/chunk/ocr/metadata/graph/db)
+    -> Deployment layer (docker_deploy/docker_stop/docker_status)
+      -> docker compose profiles in docker-compose.yml
 ```
 
-### 2. Components Location
-After installing, components appear in:
-- **Custom Components** tab in the component sidebar
+## Service Tool Coverage
 
-### 3. Install Custom Components
+The orchestrator exposes tools aligned to the platform services and profiles:
+
+| Profile | Core services | Typical tools |
+|---|---|---|
+| `crawl` | firecrawl, crawl4ai, playwright, searxng | `crawl_url`, `docker_deploy` |
+| `ingest` | airbyte + crawl services | `crawl_url`, `transfer_data` |
+| `store` | postgres, surrealdb | `execute_query`, `docker_deploy` |
+| `catalog` | openmetadata | `register_dataset`, `search_metadata` |
+| `semantic` | cube | `integrate_data`, `query_llm` |
+| `viz` | superset | `orchestrate_workflow` |
+| `kg-edit` | terminusdb, jena | `create_entity`, `create_relationship` |
+| `kg-pub` | graphdb, jena | `query_graph` |
+| `resolve` | zingg | `run_clustering`, `validate_data` |
+
+See `orchestrator/deployment.py` for deploy/stop/status tools and profile/service mapping.
+
+## LangFlow Wiring
+
+1. In LangFlow, add an HTTP/API tool node pointing to the orchestrator:
+   - Base URL: `https://api.open-data.world`
+   - Main endpoint: `POST /agent`
+2. Pass the user prompt as `user_input`.
+3. Add policy in your system prompt for deployment orchestration:
+   - If a requested capability is not available, call deployment tool first.
+   - After deployment, call the task-specific tool.
+
+## Production Checklist
+
+- Use HTTPS endpoints behind Caddy/Traefik.
+- Restrict CORS allow-list in `orchestrator/api.py` for production domains.
+- Keep secrets in environment variables only.
+- Add monitoring around `/health`, `/services`, and deployment tools.
+- Pin container image tags where possible for deterministic releases.
+
+## Link Validation for Landing Page
+
+To validate links declared in `landing/index.html`:
 
 ```bash
-# Copy components to LangFlow custom components directory
-cp -r langflow_components ~/.langflow/components/
-
-# Or use the LangFlow UI to load components
+python landing/check_links.py
 ```
 
-### 4. Build Workflows
-
-Example: Crawl → Embed → Query LLM
-
-```
-[Crawl URL] → [Chunk Text] → [Embed Text] → [Query LLM] → [Chat Output]
-```
-
-## Agent Component
-
-The Data Platform Agent is also available as a LangFlow component:
-
-```
-[DataPlatform Agent]
-  - Input: User prompt
-  - Tools: All 20+ tools available
-  - Output: Agent response
-```
-
-## Service Connection
-
-Each component connects to services via:
-
-1. **Environment Variables** - Set in `.env`
-2. **Service URLs** - Default to internal Docker network
-3. **API Keys** - For external services (OpenAI, etc.)
-
-## Troubleshooting
-
-### Components not showing?
-```bash
-# Restart LangFlow after adding components
-docker-compose restart langflow
-```
-
-### Service connection errors?
-- Check service is running: `docker-compose ps`
-- Check environment variables in `.env`
-- Verify network connectivity between containers
+If running inside a restricted network, run with a public base URL from an environment that has outbound internet access.

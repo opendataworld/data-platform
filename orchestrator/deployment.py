@@ -6,9 +6,8 @@ import os
 import subprocess
 import json
 import logging
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
 
 # LangGraph imports
 from langgraph.prebuilt import create_react_agent
@@ -16,6 +15,37 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger(__name__)
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+COMPOSE_FILE = REPO_ROOT / "docker-compose.yml"
+
+PROFILE_SERVICES: Dict[str, List[str]] = {
+    "sso": ["oauth2-proxy"],
+    "catalog": ["openmetadata"],
+    "ingest": ["airbyte", "firecrawl", "crawl4ai", "iab-taxonomy", "g2-api", "google-search-console"],
+    "crawl": ["firecrawl", "crawl4ai", "redis", "playwright", "iab-taxonomy", "g2-api", "searxng"],
+    "label": ["labelstudio", "argilla"],
+    "feedback": ["argilla"],
+    "test": ["playwright"],
+    "resolve": ["zingg"],
+    "semantic": ["cube"],
+    "viz": ["superset"],
+    "cdp": ["unomi"],
+    "store": ["postgres", "surrealdb"],
+    "kg-edit": ["terminusdb", "jena"],
+    "kg-pub": ["graphdb", "jena"],
+    "search": ["searxng", "google-search-console"],
+}
+
+
+def _run_compose_cmd(args: List[str]) -> subprocess.CompletedProcess:
+    """Run docker compose command from repository root and return result."""
+    return subprocess.run(
+        ["docker", "compose", "-f", str(COMPOSE_FILE), *args],
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+    )
 
 
 # ==== Docker Deploy Tool for Agent ====
@@ -35,35 +65,33 @@ def docker_deploy(profile: str, service: str = None) -> Dict:
         docker_deploy(profile="ml", service="ollama")  # Deploy only Ollama
     """
     try:
-        compose_file = "docker-compose.yml"
-        
-        cmd = ["docker-compose", "-f", compose_file]
-        
+        if profile not in PROFILE_SERVICES:
+            return {"error": f"Unknown profile '{profile}'", "available_profiles": sorted(PROFILE_SERVICES)}
+
+        if service and service not in PROFILE_SERVICES[profile]:
+            return {
+                "error": f"Service '{service}' is not part of profile '{profile}'",
+                "profile_services": PROFILE_SERVICES[profile],
+            }
+
+        args = ["--profile", profile, "up", "-d"]
         if service:
-            # Deploy specific service
-            cmd.extend(["--profile", profile, "up", "-d", service])
-        else:
-            # Deploy entire profile
-            cmd.extend(["--profile", profile, "up", "-d"])
-        
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=os.path.dirname(__file__) or "."
-        )
+            args.append(service)
+        result = _run_compose_cmd(args)
         
         if result.returncode == 0:
             return {
                 "status": "deployed",
                 "profile": profile,
                 "service": service or "all",
-                "message": f"Successfully deployed {service or profile} services"
+                "message": f"Successfully deployed {service or profile} services",
+                "stdout": result.stdout.strip(),
             }
         else:
             return {
-                "error": result.stderr,
-                "profile": profile
+                "error": result.stderr.strip() or "docker compose up failed",
+                "profile": profile,
+                "stdout": result.stdout.strip(),
             }
     except Exception as e:
         return {"error": str(e)}
@@ -79,29 +107,20 @@ def docker_stop(profile: str = None, service: str = None) -> Dict:
         service: Optional specific service name
     """
     try:
-        compose_file = "docker-compose.yml"
-        
-        cmd = ["docker-compose", "-f", compose_file]
-        
         if service:
-            cmd.extend(["stop", service])
+            result = _run_compose_cmd(["stop", service])
         elif profile:
-            # Stop all services in profile (requires listing)
-            result = subprocess.run(
-                ["docker-compose", "-f", compose_file, "ps", "--services"],
-                capture_output=True,
-                text=True
-            )
-            # Just stop specific service or all
-            cmd.extend(["down"])
-        
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True
-        )
-        
-        return {"status": "stopped", "profile": profile, "service": service}
+            if profile not in PROFILE_SERVICES:
+                return {"error": f"Unknown profile '{profile}'", "available_profiles": sorted(PROFILE_SERVICES)}
+            services = PROFILE_SERVICES[profile]
+            result = _run_compose_cmd(["stop", *services])
+        else:
+            result = _run_compose_cmd(["down"])
+
+        if result.returncode != 0:
+            return {"error": result.stderr.strip() or "docker compose stop failed", "profile": profile, "service": service}
+
+        return {"status": "stopped", "profile": profile, "service": service or ("all" if not profile else PROFILE_SERVICES[profile]), "stdout": result.stdout.strip()}
     except Exception as e:
         return {"error": str(e)}
 
@@ -112,12 +131,7 @@ def docker_status() -> Dict:
     Get status of all services - currently running and available.
     """
     try:
-        result = subprocess.run(
-            ["docker-compose", "ps", "--format", "json"],
-            capture_output=True,
-            text=True,
-            cwd=os.path.dirname(__file__) or "."
-        )
+        result = _run_compose_cmd(["ps", "--format", "json"])
         
         services = []
         if result.stdout:
@@ -164,30 +178,7 @@ def list_available_profiles() -> Dict:
     """
     List available Docker profiles and what services they include.
     """
-    return {
-        "profiles": {
-            "ml": {
-                "description": "ML/AI services (Ollama, embeddings, OCR, speech)",
-                "services": ["ollama", "sentence-transformers", "bge", "tesseract", "whisper", "airflow"]
-            },
-            "ingest": {
-                "description": "Data ingestion and crawling",
-                "services": ["jina-reader", "firecrawl", "playwright", "langflow", "n8n"]
-            },
-            "store": {
-                "description": "Data stores (vector, graph)",
-                "services": ["qdrant", "weaviate"]
-            },
-            "catalog": {
-                "description": "Data governance catalogs",
-                "services": ["datahub", "openmetadata", "marquez"]
-            },
-            "crawl": {
-                "description": "Web crawling services",
-                "services": ["jina-reader", "firecrawl", "crawl4ai", "trafilatura"]
-            }
-        }
-    }
+    return {"profiles": PROFILE_SERVICES}
 
 
 # ==== Agent Tools ====
