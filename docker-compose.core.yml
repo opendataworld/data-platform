@@ -21,7 +21,6 @@ services:
     image: surrealdb:latest
     ports:
       - "8001:8000"
-      - "3306:3306"
     environment:
       - SURREAL_USER=root
       - SURREAL_PASS=root
