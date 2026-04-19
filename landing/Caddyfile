@@ -2,6 +2,10 @@
 # Wildcard DNS *.open-data.world points to this VPS
 
 www.open-data.world {
+    redir https://site.open-data.world
+}
+
+site.open-data.world {
     root * /var/www/landing
     file_server
     encode zstd gzip
