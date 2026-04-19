@@ -48,6 +48,7 @@ services:
       - DATABASE_URL=postgresql://admin:changeme@postgres:5432/langflow
       - LANGFLOW_SECRET_KEY=changeme
       - LANGFLOW_LOAD_EXAMPLES=false
+      - LANGFLOW_COMPONENTS_PATH=/app/langflow_components
 
 volumes:
   postgres_data:
