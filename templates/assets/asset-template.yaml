@@ -1,0 +1,21 @@
+asset_id: example-asset
+asset_type: taxonomy|vocabulary|schema|entity
+name: Example Asset
+version: 0.1.0
+status: draft
+owners:
+  - team:data-platform
+tags:
+  - example
+description: Short human-readable summary.
+created_at: 2026-04-23T00:00:00Z
+updated_at: 2026-04-23T00:00:00Z
+source_repo: opendataworld/data-platform
+source_path: data-platform/registries/<domain>/example-asset.yaml
+review:
+  review_status: pending
+  reviewed_by: []
+  reviewed_at: null
+  review_notes_path: reviews/products/<product-slug>-review.md
+content:
+  domain_specific: {}

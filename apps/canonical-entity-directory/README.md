@@ -11,6 +11,10 @@ python3 server.py
 
 Then open http://localhost:8091.
 
+## Status model
+
+- `draft` -> `approved` -> `published`
+
 ## Storage Convention
 
 Entities are stored at:
