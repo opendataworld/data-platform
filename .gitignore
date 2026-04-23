@@ -4,3 +4,6 @@
 .DS_Store
 data/
 volumes/
+
+__pycache__/
+*.pyc
