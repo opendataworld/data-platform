@@ -1,61 +1,79 @@
-# opendataworld data-platform
+# OpenDataWorld Data Platform (`opendataworld/data-platform`)
 
-Umbrella repo for the `opendataworld` open-source data stack.
-One `docker-compose.yml`, nine services, Compose **profiles** so you install only what you need.
+This repository is the **umbrella repo** for the OpenDataWorld **Data Platform**.
 
-## Stack
+It is the primary place for:
+- deployment and integration
+- local/dev platform assembly
+- OSS service composition via Docker Compose profiles
+- platform architecture documentation
+- module and roadmap definition
 
-| Layer | Tool | Profile |
-|---|---|---|
-| Catalog | [OpenMetadata](https://github.com/opendataworld/OpenMetadata) | `catalog` |
-| Ingestion | Airbyte | `ingest` |
-| Entity resolution | Zingg | `resolve` |
-| Semantic layer | Cube | `semantic` |
-| Dashboards | Superset | `viz` |
-| CDP | Unomi | `cdp` |
-| Doc / vector / ops store | SurrealDB | `store` |
-| Editorial knowledge graph | TerminusDB | `kg-edit` |
-| Publishing knowledge graph | GraphDB Free | `kg-pub` |
+It is **not** the AI Platform, Identity Platform, or Intelligence Platform.
 
-Authentication is delegated to an **external Keycloak** at `auth.unboxd.cloud` (not installed here — clients are registered in that Keycloak and referenced by env var).
+## Platform positioning
 
-## Quick start
+- **OpenDataWorld** = Data Platform (this repo)
+- **AgentNxt** = AI Platform (separate platform/repo concern)
 
-```bash
-cp .env.example .env            # fill in real values (Keycloak client secrets, etc.)
-docker compose --profile catalog up -d     # install OpenMetadata only
-docker compose --profile catalog --profile ingest up -d   # add Airbyte
-```
+This repo intentionally focuses on data infrastructure and data product plumbing. It can integrate with AgentNxt, but it does not absorb AgentNxt scope.
 
-See [`docs/phase-plan.md`](docs/phase-plan.md) for the recommended install order.
+## Current scope (today)
 
-## Profiles
+Current repo reality is an umbrella deployment and integration workspace with:
+- compose-managed OSS services across catalog, ingestion, storage, semantic, visualization, graph, search, and labeling concerns
+- profile-based startup so teams can run only what they need
+- architecture and operations docs that describe rollout phases and environments
 
-Services are tagged with Compose profiles so nothing starts unless you opt in:
+Key current OSS foundations in this repo include:
+- OpenMetadata
+- Airbyte
+- Zingg
+- Cube
+- Superset
+- TerminusDB
+- GraphDB
+- Apache Jena
+- SurrealDB
+- Postgres
+- Redis
+- Label Studio
+- Argilla
+- SearXNG
+- Firecrawl
+- Crawl4AI
+- Playwright
 
-```yaml
-services:
-  openmetadata:
-    profiles: ["catalog"]
-  airbyte-server:
-    profiles: ["ingest"]
-```
+Planned/expanding integrations include lineage and feature components such as **Marquez** and **Feast**, integrated as needed rather than rewritten.
 
-Run multiple at once:
+## Long-term architecture direction
 
-```bash
-docker compose --profile catalog --profile store --profile ingest up -d
-```
+OpenDataWorld’s Data Platform direction includes canonical domain registries, such as:
+- dataset registry
+- schema registry
+- taxonomy registry
+- vocabulary registry
+- entity registry
+- thing registry
+- publication registry
+- license registry
+- eval data registry
 
-## Conventions
+These are a **future architectural destination**. They should be documented and staged before any aggressive repo split.
 
-- All hosts/ports/secrets come from `.env` — nothing is hardcoded in compose files.
-- Each service uses OIDC against the external Keycloak — per-service client ID/secret in `.env`.
-- Data volumes are named (not bind-mounted) for portability.
-- See each service's README upstream for tuning; this repo is deployment only, not forks.
+## Documentation map
 
-## What this repo is not
+- [Platform overview](docs/platform-overview.md)
+- [Module map](docs/module-map.md)
+- [Upstream strategy](docs/upstream-strategy.md)
+- [Repo roadmap](docs/repo-roadmap.md)
+- [Compose profiles reference](docs/PROFILES.md)
+- [Phase plan](docs/phase-plan.md)
 
-- Not a fork of any upstream tool. Use the official images.
-- Not a Kubernetes manifest set (Compose only, for now).
-- Not where Keycloak itself is managed.
+## Operating principles
+
+- Build practical, usable product slices first.
+- Prefer OSS integration/composition before cloning/forking.
+- Make minimum structural change needed for the current deliverable.
+- Keep current state, next state, and future state explicit in docs.
+- Keep GitHub artifacts (prompt, docs, review notes) as system-of-record outputs.
