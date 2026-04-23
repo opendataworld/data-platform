@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Canonical Entity Directory MVP</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    input, textarea, select, button { margin: 0.25rem 0; width: 100%; padding: 0.4rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.4rem; }
+    .muted { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Canonical Entity Directory MVP</h1>
+  <p class="muted">GitHub-backed assets via JSON files in this repository.</p>
+
+  <div class="grid">
+    <div>
+      <h2>Create / Update Entity</h2>
+      <input id="entity_id" placeholder="entity_id (example: odw:org:open-data-world)" />
+      <input id="canonical_name" placeholder="canonical_name" />
+      <input id="entity_type" placeholder="entity_type (organization, person, place...)" />
+      <select id="status">
+        <option value="draft">draft</option>
+        <option value="approved">approved</option>
+        <option value="published">published</option>
+      </select>
+      <input id="aliases" placeholder="aliases (comma separated)" />
+      <input id="source_references" placeholder="source references (comma separated URLs)" />
+      <textarea id="description" placeholder="description"></textarea>
+      <textarea id="notes" placeholder="notes"></textarea>
+      <button onclick="saveEntity()">Save Entity</button>
+    </div>
+
+    <div>
+      <h2>Search</h2>
+      <input id="q" placeholder="search text" />
+      <input id="status_filter" placeholder="status filter" />
+      <input id="type_filter" placeholder="entity_type filter" />
+      <button onclick="loadEntities()">Search / Browse</button>
+      <p>
+        <a href="/api/export.json" target="_blank">Export JSON</a> |
+        <a href="/api/export.csv" target="_blank">Export CSV</a>
+      </p>
+    </div>
+  </div>
+
+  <h2>Entities</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Type</th><th>Version</th><th>Status</th><th>Aliases</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    async function saveEntity() {
+      const payload = {
+        entity_id: document.getElementById('entity_id').value,
+        canonical_name: document.getElementById('canonical_name').value,
+        entity_type: document.getElementById('entity_type').value,
+        status: document.getElementById('status').value,
+        aliases: document.getElementById('aliases').value.split(',').map(v => v.trim()).filter(Boolean),
+        source_references: document.getElementById('source_references').value.split(',').map(v => v.trim()).filter(Boolean),
+        description: document.getElementById('description').value,
+        notes: document.getElementById('notes').value,
+      };
+      await fetch('/api/entities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await loadEntities();
+    }
+
+    async function loadEntities() {
+      const q = encodeURIComponent(document.getElementById('q').value || '');
+      const status = encodeURIComponent(document.getElementById('status_filter').value || '');
+      const entity_type = encodeURIComponent(document.getElementById('type_filter').value || '');
+      const res = await fetch(`/api/entities?q=${q}&status=${status}&entity_type=${entity_type}`);
+      const entities = await res.json();
+      const rows = document.getElementById('rows');
+      rows.innerHTML = entities.map(e => `<tr><td>${e.entity_id}</td><td>${e.canonical_name}</td><td>${e.entity_type}</td><td>${e.version}</td><td>${e.status}</td><td>${(e.aliases || []).join(', ')}</td></tr>`).join('');
+    }
+
+    loadEntities();
+  </script>
+</body>
+</html>
