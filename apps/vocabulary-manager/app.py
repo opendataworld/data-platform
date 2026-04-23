@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -16,6 +17,12 @@ Status = Literal["draft", "approved", "published"]
 
 APP_DIR = Path(__file__).resolve().parent
 REPO_ROOT = APP_DIR.parent.parent
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from shared.assets import ensure_status, read_asset_json, save_asset_json
+
 VOCAB_STORAGE_DIR = REPO_ROOT / "data-platform" / "registries" / "vocabularies"
 VOCAB_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +58,7 @@ def _vocab_path(vocabulary_id: str) -> Path:
 def _save_vocab(vocab: VocabularyAsset) -> VocabularyAsset:
     vocab.updated_at = datetime.now(timezone.utc).isoformat()
     path = _vocab_path(vocab.vocabulary_id)
-    path.write_text(json.dumps(vocab.model_dump(), indent=2) + "\n", encoding="utf-8")
+    save_asset_json(path, vocab.model_dump())
     return vocab
 
 
@@ -59,17 +66,17 @@ def _load_vocab(vocabulary_id: str) -> VocabularyAsset:
     path = _vocab_path(vocabulary_id)
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"Vocabulary '{vocabulary_id}' not found")
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = read_asset_json(path)
     return VocabularyAsset.model_validate(payload)
 
 
 def _allowed_transition(current: Status, target: Status) -> bool:
-    allowed = {
-        "draft": {"draft", "approved"},
-        "approved": {"approved", "published"},
-        "published": {"published"},
-    }
-    return target in allowed[current]
+    try:
+        normalized = ensure_status(target)
+    except Exception:
+        return False
+    allowed = {"draft": {"draft", "approved"}, "approved": {"approved", "published"}, "published": {"published"}}
+    return normalized in allowed[current]
 
 
 def _as_csv(vocab: VocabularyAsset) -> str:

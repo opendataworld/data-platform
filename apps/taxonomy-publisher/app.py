@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import csv
 import json
-import re
+import sys
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,6 +14,13 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 APP_DIR = Path(__file__).resolve().parent
+REPO_ROOT = APP_DIR.parent.parent
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from shared.assets import ensure_status, read_asset_json, sanitize_asset_id, save_asset_json
+
 STORAGE_DIR = APP_DIR / "storage" / "taxonomies"
 STATIC_DIR = APP_DIR / "static"
 VALID_STATUSES = {"draft", "approved", "published"}
@@ -24,10 +31,7 @@ def now_iso() -> str:
 
 
 def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-    if not slug:
-        raise ValueError("taxonomy id or name must include at least one alphanumeric character")
-    return slug
+    return sanitize_asset_id(value)
 
 
 def taxonomy_path(taxonomy_id: str) -> Path:
@@ -40,9 +44,7 @@ def validate_taxonomy(payload: dict[str, Any], allow_missing_core: bool = False)
     if not allow_missing_core and (not taxonomy_id or not name):
         raise ValueError("taxonomy requires 'id' and 'name'")
 
-    status = payload.get("status", "draft")
-    if status not in VALID_STATUSES:
-        raise ValueError(f"invalid status '{status}', expected one of {sorted(VALID_STATUSES)}")
+    status = ensure_status(payload.get("status", "draft"), allowed_statuses=VALID_STATUSES)
 
     terms = payload.get("terms", [])
     if not isinstance(terms, list):
@@ -92,16 +94,12 @@ def read_taxonomy(taxonomy_id: str) -> dict[str, Any]:
     path = taxonomy_path(taxonomy_id)
     if not path.exists():
         raise FileNotFoundError(f"taxonomy '{taxonomy_id}' does not exist")
-    with path.open("r", encoding="utf-8") as fh:
-        return json.load(fh)
+    return read_asset_json(path)
 
 
 def write_taxonomy(payload: dict[str, Any]) -> dict[str, Any]:
     normalized = validate_taxonomy(payload)
-    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    with taxonomy_path(normalized["id"]).open("w", encoding="utf-8") as fh:
-        json.dump(normalized, fh, indent=2)
-        fh.write("\n")
+    save_asset_json(taxonomy_path(normalized["id"]), normalized)
     return normalized
 
 
