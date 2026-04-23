@@ -19,6 +19,10 @@ python app.py
 
 Open `http://localhost:8787`.
 
+## Status model
+
+- `draft` -> `approved` -> `published`
+
 ## Schema asset shape
 ```json
 {

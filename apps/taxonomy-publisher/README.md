@@ -20,7 +20,11 @@ Then open <http://localhost:8787>.
 - `GET /api/taxonomies/{id}/export.csv` export taxonomy terms as CSV
 - `POST /api/import/csv` import CSV to taxonomy asset
 
-## Storage Convention
+## Status model
+
+- `draft` -> `approved` -> `published`
+
+## Storage convention
 
 - Taxonomy assets are stored under `apps/taxonomy-publisher/storage/taxonomies/*.json`.
 - Git history in this repository is the canonical version log.
