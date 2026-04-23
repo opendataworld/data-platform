@@ -1,0 +1,39 @@
+{
+  "vocabulary_id": "core-science",
+  "name": "Core Science Vocabulary",
+  "version": "0.1.0",
+  "status": "draft",
+  "terms": [
+    {
+      "term_id": "biology",
+      "preferred_label": "Biology",
+      "synonyms": [
+        "life science"
+      ],
+      "definition": "The study of living organisms and their interactions.",
+      "broader_terms": [
+        "science"
+      ],
+      "narrower_terms": [],
+      "related_terms": [
+        "ecology"
+      ]
+    },
+    {
+      "term_id": "chemistry",
+      "preferred_label": "Chemistry",
+      "synonyms": [
+        "chemical science"
+      ],
+      "definition": "The study of substances, their properties, and reactions.",
+      "broader_terms": [
+        "science"
+      ],
+      "narrower_terms": [],
+      "related_terms": [
+        "physics"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-23T00:00:00+00:00"
+}
