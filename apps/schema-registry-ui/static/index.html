@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Schema Registry UI MVP</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; }
+      textarea { width: 100%; min-height: 180px; font-family: monospace; }
+      pre { background: #f5f5f5; padding: 12px; overflow: auto; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+      button { margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Schema Registry UI MVP</h1>
+    <p>GitHub-backed storage path: <code>data-platform/registry/schema-assets/</code></p>
+    <div class="grid">
+      <section>
+        <h2>Create / Update Schema Asset</h2>
+        <textarea id="schemaInput">{
+  "schema_id": "customer-profile",
+  "name": "Customer Profile",
+  "version": "1.0.0",
+  "status": "draft",
+  "schema_type": "json_schema",
+  "properties": {
+    "customerId": { "type": "string" },
+    "email": { "type": "string", "format": "email" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["customerId", "email"]
+}</textarea>
+        <button onclick="saveSchema()">Save schema</button>
+        <button onclick="loadSchemas()">Refresh list</button>
+      </section>
+      <section>
+        <h2>Schemas</h2>
+        <pre id="schemaList">Loading...</pre>
+      </section>
+    </div>
+
+    <section>
+      <h2>Diff</h2>
+      <input id="diffSchema" placeholder="schema id" value="customer-profile" />
+      <input id="diffV1" placeholder="v1" value="1.0.0" />
+      <input id="diffV2" placeholder="v2" value="1.0.1" />
+      <button onclick="showDiff()">Show diff</button>
+      <pre id="diffOutput"></pre>
+    </section>
+
+    <script>
+      async function loadSchemas() {
+        const res = await fetch('/api/schemas');
+        const data = await res.json();
+        document.getElementById('schemaList').textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function saveSchema() {
+        const payload = JSON.parse(document.getElementById('schemaInput').value);
+        const res = await fetch('/api/schemas', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(res.ok ? 'Saved' : 'Error');
+        console.log(data);
+        loadSchemas();
+      }
+
+      async function showDiff() {
+        const schema = document.getElementById('diffSchema').value;
+        const v1 = document.getElementById('diffV1').value;
+        const v2 = document.getElementById('diffV2').value;
+        const res = await fetch(`/api/schemas/${schema}/diff?v1=${encodeURIComponent(v1)}&v2=${encodeURIComponent(v2)}`);
+        const data = await res.json();
+        document.getElementById('diffOutput').textContent = data.diff || JSON.stringify(data, null, 2);
+      }
+
+      loadSchemas();
+    </script>
+  </body>
+</html>

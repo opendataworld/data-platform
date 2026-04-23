@@ -1,0 +1,20 @@
+{
+  "schema_id": "customer-profile",
+  "name": "Customer Profile",
+  "version": "1.0.1",
+  "status": "approved",
+  "schema_type": "json_schema",
+  "properties": {
+    "customerId": {"type": "string"},
+    "email": {"type": "string", "format": "email"},
+    "createdAt": {"type": "string", "format": "date-time"}
+  },
+  "required": ["customerId", "email"],
+  "validation": {
+    "is_valid": true,
+    "errors": [],
+    "validated_at": "2026-04-23T00:10:00+00:00",
+    "validator": "jsonschema.Draft202012Validator"
+  },
+  "references": []
+}
