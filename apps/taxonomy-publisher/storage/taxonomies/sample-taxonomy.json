@@ -1,0 +1,27 @@
+{
+  "id": "sample-taxonomy",
+  "name": "Sample Taxonomy",
+  "version": "1.0.0",
+  "status": "approved",
+  "terms": [
+    {
+      "id": "root",
+      "label": "Root",
+      "parent_id": null,
+      "aliases": []
+    },
+    {
+      "id": "child-term",
+      "label": "Child Term",
+      "parent_id": "root",
+      "aliases": [
+        "Child"
+      ]
+    }
+  ],
+  "metadata": {
+    "owner": "opendataworld"
+  },
+  "created_at": "2026-04-23T00:00:00+00:00",
+  "updated_at": "2026-04-23T00:00:00+00:00"
+}

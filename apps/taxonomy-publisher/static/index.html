@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taxonomy Publisher MVP</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem; max-width: 960px; }
+      textarea, input, select { width: 100%; margin: 0.4rem 0 1rem; }
+      textarea { min-height: 140px; }
+      button { margin-right: 0.5rem; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>OpenDataWorld Taxonomy Publisher (MVP)</h1>
+    <p>This MVP stores taxonomy assets as git-tracked JSON files in this repository.</p>
+
+    <div class="row">
+      <section>
+        <h2>Create / Upsert Taxonomy (JSON)</h2>
+        <textarea id="taxonomy-json">{
+  "id": "animals",
+  "name": "Animals",
+  "version": "0.1.0",
+  "status": "draft",
+  "terms": [
+    {"id": "mammals", "label": "Mammals"},
+    {"id": "canines", "label": "Canines", "parent_id": "mammals", "aliases": ["dogs"]}
+  ]
+}</textarea>
+        <button onclick="saveTaxonomy()">Save Taxonomy</button>
+        <button onclick="listTaxonomies()">Refresh List</button>
+      </section>
+      <section>
+        <h2>Import CSV</h2>
+        <textarea id="csv-input">taxonomy_id,taxonomy_name,taxonomy_version,status,term_id,label,parent_id,aliases
+plants,Plants,0.1.0,draft,trees,Trees,,
+plants,Plants,0.1.0,draft,oak,Oak,trees,Quercus</textarea>
+        <button onclick="importCsv()">Import CSV</button>
+      </section>
+    </div>
+
+    <h2>Published Taxonomies</h2>
+    <button onclick="listTaxonomies('published')">Show Published</button>
+    <pre id="output">Click "Refresh List" to load taxonomy assets.</pre>
+
+    <script>
+      async function api(path, method = 'GET', body = null, contentType = 'application/json') {
+        const options = { method, headers: {} };
+        if (body !== null) {
+          options.body = body;
+          options.headers['Content-Type'] = contentType;
+        }
+        const res = await fetch(path, options);
+        if (res.headers.get('content-type')?.includes('application/json')) {
+          return res.json();
+        }
+        return res.text();
+      }
+
+      async function saveTaxonomy() {
+        const payload = document.getElementById('taxonomy-json').value;
+        const data = await api('/api/taxonomies', 'POST', payload);
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function importCsv() {
+        const payload = document.getElementById('csv-input').value;
+        const data = await api('/api/import/csv', 'POST', payload, 'text/csv');
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function listTaxonomies(status = '') {
+        const query = status ? `?status=${status}` : '';
+        const data = await api(`/api/taxonomies${query}`);
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      }
+    </script>
+  </body>
+</html>
