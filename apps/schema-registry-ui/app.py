@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from difflib import unified_diff
 from pathlib import Path
 from typing import Any
@@ -14,6 +14,12 @@ from jsonschema import Draft202012Validator
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = BASE_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from shared.assets import ensure_status, now_iso, read_asset_json, save_asset_json
+
 ASSET_ROOT = BASE_DIR / "data-platform" / "registry" / "schema-assets"
 ALLOWED_STATUSES = {"draft", "approved", "published"}
 ALLOWED_TYPES = {"json_schema"}
@@ -45,10 +51,6 @@ class SchemaAsset:
         }
 
 
-def now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
 def schema_dir(schema_id: str) -> Path:
     return ASSET_ROOT / schema_id
 
@@ -61,14 +63,12 @@ def read_asset(schema_id: str, version: str) -> dict[str, Any]:
     path = version_path(schema_id, version)
     if not path.exists():
         raise FileNotFoundError(f"Schema {schema_id} version {version} was not found")
-    return json.loads(path.read_text())
+    return read_asset_json(path)
 
 
 def write_asset(asset: dict[str, Any]) -> Path:
     path = version_path(asset["schema_id"], asset["version"])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(asset, indent=2) + "\n")
-    return path
+    return save_asset_json(path, asset)
 
 
 def latest_version(schema_id: str) -> str | None:
@@ -92,9 +92,7 @@ def normalize_payload(payload: dict[str, Any]) -> SchemaAsset:
     if schema_type not in ALLOWED_TYPES:
         raise ValueError(f"schema_type must be one of {sorted(ALLOWED_TYPES)}")
 
-    status = payload.get("status", "draft")
-    if status not in ALLOWED_STATUSES:
-        raise ValueError(f"status must be one of {sorted(ALLOWED_STATUSES)}")
+    status = ensure_status(payload.get("status", "draft"), allowed_statuses=ALLOWED_STATUSES)
 
     schema_id = payload["schema_id"].strip()
     version = payload["version"].strip()
@@ -189,8 +187,10 @@ def update_status(schema_id: str) -> Any:
 
     asset = read_asset(schema_id, target_version)
     new_status = payload.get("status")
-    if new_status not in ALLOWED_STATUSES:
-        return jsonify({"error": f"status must be one of {sorted(ALLOWED_STATUSES)}"}), 400
+    try:
+        new_status = ensure_status(new_status, allowed_statuses=ALLOWED_STATUSES)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     asset["status"] = new_status
     asset.setdefault("validation", {})["status_updated_at"] = now_iso()

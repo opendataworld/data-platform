@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import csv
 import json
+import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from shared.assets import ensure_status, now_iso, read_asset_json, save_asset_json
 
 VALID_STATUS = {"draft", "approved", "published"}
 
@@ -26,13 +33,13 @@ class EntityStore:
         for entity_dir in sorted(self.entities_root.iterdir()):
             latest = entity_dir / "latest.json"
             if latest.exists():
-                entities.append(json.loads(latest.read_text()))
+                entities.append(read_asset_json(latest))
         return entities
 
     def get_entity(self, entity_id: str) -> dict[str, Any] | None:
         path = self.entities_root / entity_id / "latest.json"
         if path.exists():
-            return json.loads(path.read_text())
+            return read_asset_json(path)
         return None
 
     def save_entity(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -43,9 +50,7 @@ class EntityStore:
         existing = self.get_entity(entity_id)
         next_version = 1 if existing is None else int(existing["version"]) + 1
 
-        status = payload.get("status", "draft").strip().lower()
-        if status not in VALID_STATUS:
-            raise ValueError(f"status must be one of: {', '.join(sorted(VALID_STATUS))}")
+        status = ensure_status(payload.get("status", "draft"), allowed_statuses=VALID_STATUS)
 
         entity = {
             "entity_id": entity_id,
@@ -57,20 +62,19 @@ class EntityStore:
             "source_references": [s.strip() for s in payload.get("source_references", []) if s.strip()],
             "description": payload.get("description", "").strip(),
             "notes": payload.get("notes", "").strip(),
-            "updated_at": datetime.now(UTC).isoformat(),
+            "updated_at": now_iso(),
         }
 
         entity_dir = self.entities_root / entity_id
         entity_dir.mkdir(parents=True, exist_ok=True)
         version_path = entity_dir / f"v{next_version}.json"
         latest_path = entity_dir / "latest.json"
-        version_path.write_text(json.dumps(entity, indent=2) + "\n")
-        latest_path.write_text(json.dumps(entity, indent=2) + "\n")
+        save_asset_json(version_path, entity)
+        save_asset_json(latest_path, entity)
         return entity
 
     def transition_status(self, entity_id: str, status: str) -> dict[str, Any]:
-        if status not in VALID_STATUS:
-            raise ValueError(f"status must be one of: {', '.join(sorted(VALID_STATUS))}")
+        status = ensure_status(status, allowed_statuses=VALID_STATUS)
 
         entity = self.get_entity(entity_id)
         if not entity:
