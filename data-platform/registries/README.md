@@ -10,34 +10,35 @@ data-platform/registries/
 ├── products/
 │   ├── README.md
 │   ├── canonical-entity-directory/
-│   │   └── mvp.md
+│   │   └── README.md
 │   ├── schema-registry-ui/
-│   │   └── mvp.md
+│   │   └── README.md
 │   ├── taxonomy-publisher/
-│   │   └── mvp.md
+│   │   └── README.md
 │   └── vocabulary-manager/
-│       └── mvp.md
+│       └── README.md
 └── vocabularies/
     └── example-core-science-vocab.json
 ```
 
 ## Conventions
 
-- Product discovery and delivery documents live under `products/<product-slug>/`.
-- MVP documents are named `mvp.md` so each product can later add `prd.md`, `roadmap.md`, `adr/`, `ux/`, and `release-notes/` without renaming the original artifact.
+- Product documentation lives under `products/<product-slug>/README.md`.
+- Product folders are long-lived ownership boundaries, not milestone folders.
+- Use additional subfolders such as `adr/`, `ux/`, `api/`, `release-notes/`, and `runbooks/` when a product needs deeper artifacts.
 - Registry data examples live under the registry type they represent, such as `vocabularies/`.
 - Use kebab-case for folder and file names.
 - Keep generated artifacts, screenshots, exports, and environment-specific files out of this folder unless they are deliberate fixtures.
 
 ## Product areas
 
-| Product | Purpose | MVP document |
+| Product | Purpose | Document |
 | --- | --- | --- |
-| Canonical Entity Directory | Maintains trusted entity records and identifiers across datasets. | `products/canonical-entity-directory/mvp.md` |
-| Schema Registry UI | Lets teams discover, review, validate, and govern schemas. | `products/schema-registry-ui/mvp.md` |
-| Taxonomy Publisher | Publishes approved taxonomies to versioned downstream consumers. | `products/taxonomy-publisher/mvp.md` |
-| Vocabulary Manager | Manages controlled vocabularies, terms, synonyms, and definitions. | `products/vocabulary-manager/mvp.md` |
+| Canonical Entity Directory | Maintains trusted entity records, identifiers, aliases, relationships, lifecycle states, and resolution APIs. | `products/canonical-entity-directory/README.md` |
+| Schema Registry UI | Lets teams discover, validate, review, approve, compare, and operate schema contracts. | `products/schema-registry-ui/README.md` |
+| Taxonomy Publisher | Publishes approved taxonomies as versioned, validated, immutable downstream artifacts. | `products/taxonomy-publisher/README.md` |
+| Vocabulary Manager | Manages controlled vocabularies, terms, definitions, synonyms, relationships, and lifecycle governance. | `products/vocabulary-manager/README.md` |
 
-## Definition of production-ready documentation
+## Documentation quality bar
 
-A registry product document should define the user problem, target users, MVP scope, non-goals, functional requirements, data model, permissions, workflows, success metrics, risks, rollout plan, and open questions. Product docs should be specific enough for design, engineering, and data-governance stakeholders to estimate and build from without relying on tribal knowledge.
+A production-grade registry product document should define the product purpose, ownership model, target users, workflows, data contracts, permission model, lifecycle states, APIs, validation rules, integration points, operational requirements, security and privacy expectations, observability, failure modes, rollout plan, roadmap, and open decisions. The document should be detailed enough for product, design, engineering, data governance, and platform operations stakeholders to build and operate from without relying on tribal knowledge.
