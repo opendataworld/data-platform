@@ -1,5 +1,18 @@
 # AGENTS.md
 
+## Shared Instruction Alignment
+
+This repository follows the shared OpenAutonomyX instruction layer in `openautonomyx/common-instructions` while remaining scoped to the OpenDataWorld Data Platform.
+
+Use these shared references as the default baseline for documentation, execution, review, and guardrails:
+
+- `standards/engineering-execution-standard.md`
+- `policies/context-and-guardrails-policy.md`
+- `policies/test-and-process-improvement-policy.md`
+- `policies/airgapped-operation-policy.md`
+
+Do not duplicate shared policies or prompt packs here. Reference them and keep this repository focused on Data Platform-specific documentation, assembly, integration, and operations.
+
 ## Repo Role
 
 This repository is the umbrella repo for the **OpenDataWorld Data Platform**.
