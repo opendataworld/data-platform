@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'USAGE'
+Usage: docker publish [compose-file ...]
+
+Publishes images declared by the provided compose files.
+If no files are passed, it defaults to docker-compose.yml.
+USAGE
+  exit 0
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required but not installed" >&2
+  exit 127
+fi
+
+files=("$@")
+if [[ ${#files[@]} -eq 0 ]]; then
+  files=("docker-compose.yml")
+fi
+
+compose_args=()
+for file in "${files[@]}"; do
+  if [[ ! -f "$file" ]]; then
+    echo "compose file not found: $file" >&2
+    exit 1
+  fi
+  compose_args+=("-f" "$file")
+done
+
+# Build then push images referenced by compose services.
+docker compose "${compose_args[@]}" build
+
+docker compose "${compose_args[@]}" push

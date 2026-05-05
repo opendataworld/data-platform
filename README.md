@@ -77,3 +77,18 @@ These are a **future architectural destination**. They should be documented and 
 - Make minimum structural change needed for the current deliverable.
 - Keep current state, next state, and future state explicit in docs.
 - Keep GitHub artifacts (prompt, docs, review notes) as system-of-record outputs.
+
+## Docker publish helper
+
+This repo includes a Docker CLI plugin script at `./docker-publish` so you can run:
+
+```bash
+docker publish
+```
+
+Behavior:
+- Defaults to `docker-compose.yml` when no files are passed.
+- Accepts one or more compose files, e.g. `docker publish docker-compose.yml docker-compose.override.yml`.
+- Builds and then pushes all compose service images.
+
+If Docker is not installed, the helper exits with code `127` and a clear error.
